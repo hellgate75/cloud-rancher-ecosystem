@@ -1,0 +1,4 @@
+- hosts: rancher-ha-db
+  become: yes
+
+- include: ./mysql.yaml

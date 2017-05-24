@@ -1,0 +1,257 @@
+- name: define grants
+  become: yes
+  shell: chown -Rf rancher:rancher /home/rancher
+
+- name: define grants
+  become: yes
+  shell: chown -Rf ubuntu:ubuntu /home/ubuntu
+
+- name: Install curl
+  package:
+      name=curl
+      update_cache=yes
+
+- name: Install python-httplib2
+  package:
+      name=python-httplib2
+
+- name: Install sudo
+  package:
+      name=sudo
+
+- name: Get Kubernetes CI/CD Environment project id
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ kubernetes_project_name }}"
+    return_content: yes
+  register: project_response_1
+  when: type == "k8s"
+
+- name: Setting Kubernetes CI/CD Environment project id
+  set_fact:
+    project_id: "{{ item.id }}"
+  with_items: "{{ project_response_1.json.data }}"
+  when: type == "k8s"
+
+- name: Get Mesos CI/CD Environment project id
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ mesos_project_name }}"
+    return_content: yes
+  register: project_response_2
+  when: type == "mesos"
+
+- name: Setting Mesos CI/CD Environment project id
+  set_fact:
+    project_id: "{{ item.id }}"
+  with_items: "{{ project_response_2.json.data }}"
+  when: type == "mesos"
+
+- name: Get Swarm Portainer CI/CD Environment project id
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ swarm_project_name }}"
+    return_content: yes
+  register: project_response_3
+  when: type == "portainer"
+
+- name: Setting Swarm Portainer CI/CD Environment project id
+  set_fact:
+    project_id: "{{ item.id }}"
+  with_items: "{{ project_response_3.json.data }}"
+  when: type == "portainer"
+
+- name: Get CI/CD Cattle Environment 1 project id
+  # shell: "curl -X GET -H \"Accept: application/json;Content-Type: application/json;x-api-csrf: EA01B4BB8E\" http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ cattle1_project_name }}"
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ cattle1_project_name }}"
+  register: project_response_4
+  when: type == "env1"
+
+- name: Setting CI/CD Cattle Environment 1 project id
+  set_fact:
+    project_id: "{{ item.id }}"
+  with_items: "{{ project_response_4.json.data }}"
+  when: type == "env1"
+
+- name: Get CI/CD Cattle Environment 2 project id
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ cattle2_project_name }}"
+    return_content: yes
+  register: project_response_5
+  when: type == "env2"
+
+- name: Setting CI/CD Cattle Environment 2 project id
+  set_fact:
+    project_id: "{{ item.id }}"
+  with_items: "{{ project_response_5.json.data }}"
+  when: type == "env2"
+
+- name: Get CI/CD Cattle Environment 3 project id
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ cattle3_project_name }}"
+    return_content: yes
+  register: project_response_6
+  when: type == "env3"
+
+- name: Setting CI/CD Cattle Environment 3 project id
+  set_fact:
+    project_id: "{{ item.id }}"
+  with_items: "{{ project_response_6.json.data }}"
+  when: type == "env3"
+
+
+- name: Project to join
+  debug:
+    msg: "Project id : {{ project_id }}"
+
+- name: Return the registration token URL of Rancher server
+  become: yes
+  uri:
+    method: POST
+    status_code: 201
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects/{{ project_id }}/registrationtokens"
+    return_content: yes
+  register: rancher_token_urls
+
+- name: Setting token link
+  set_fact:
+    token_link: "{{ rancher_token_urls.json.links.self }}"
+
+- name: Get the default CI/CD Cattle Environment 3 project id
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "{{ token_link }}"
+    return_content: yes
+  register: rancher_token
+
+- name: Setting docker command
+  set_fact:
+    docker_command: "{{ rancher_token.json.command }}"
+
+- name: Remove previous Host machine with the Rancher server
+  become: yes
+  shell: "docker ps -a -q | xargs docker rm -f"
+  ignore_errors: yes
+
+- name: Rancher Agent Docker Command
+  debug:
+    msg: "Docker command : {{ docker_command }}"
+
+- name: Register the Host machine with the Rancher server
+  become: yes
+  shell: "{{ docker_command }}"

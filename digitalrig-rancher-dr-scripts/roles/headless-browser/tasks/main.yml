@@ -1,0 +1,20 @@
+- name: add chrome yum repo
+  copy: src=google-chrome.repo dest=/etc/yum.repos.d/google-chrome.repo owner=root group=root mode=644
+
+- name: download chrome driver
+  command: wget -q -O {{chromedriver_zip_temp_path}} {{chromedriver_download_url}}
+
+- name: unzip chrome driver and put on path
+  unarchive: copy=false src={{chromedriver_zip_temp_path}} dest=/usr/bin
+
+- name: set ownership / mod
+  file: path=/usr/bin/chromedriver owner=root group=root mode=755
+
+- name: install packages
+  yum: pkg={{item}} state=installed enablerepo=epel #update_cache=yes
+  with_items:
+    - xorg-x11-server-Xvfb
+    - "@Fonts" # needed for screenshots in Chrome to work
+
+- name: install specific chrome
+  yum: pkg=google-chrome-stable state=installed

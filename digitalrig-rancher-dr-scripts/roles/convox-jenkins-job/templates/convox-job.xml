@@ -1,0 +1,103 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.3">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>APP_NAME</name>
+          <description>Application Name</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>GIT_URL</name>
+          <description>Git Repository URL</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>BRANCH</name>
+          <description>Branch to checkout</description>
+          <defaultValue>master</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>STAGING_PIPELINE_PATH</name>
+          <description>Staging Pipeline Script Path</description>
+          <defaultValue>Jenkinsfile</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PRODUCTION_PIPELINE_PATH</name>
+          <description>Production Pipeline Script Path</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.8">
+    <script>stage &quot;Set Up&quot;
+node{
+    sh(&quot;curl -L https://dl.bintray.com/buildit/maven/jenkins-pipeline-libraries-${env.PIPELINE_LIBS_VERSION}.zip -o lib.zip &amp;&amp; echo &apos;A&apos; | unzip lib.zip&quot;)
+
+    aws_region = &apos;{{ aws_region }}&apos;
+    jenkinsUrl = &apos;{{ jenkins_url }}&apos;
+    jenkinsCredentials = &apos;{{ jenkins_credentials }}&apos;
+    jenkinsScmPoll = &apos;{{ jenkins_scm_poll }}&apos;
+
+    jenkins = load &quot;lib/jenkins.groovy&quot;
+    shell = load &quot;lib/shell.groovy&quot;
+}
+
+node {
+    stage &apos;Create Convox Apps&apos;
+      sh(&quot;convox login ${env.CONVOX_RACKNAME} --password ${env.CONVOX_PASSWORD}&quot;)
+      def rackIsInternal = shell.pipe('convox rack params get | grep Internal').contains('Yes')
+      if(!rackIsInternal)
+        sh("convox rack params set Internal=Yes")
+
+      if(PRODUCTION_PIPELINE_PATH){
+        // check if app already exists
+        def appExists = shell.pipe(&quot;convox apps | grep &apos;${APP_NAME} &apos;&quot;)
+        if (!appExists) {
+            // will only create the app if app does not already exist
+            sh(&quot;convox apps create ${APP_NAME}&quot;)
+            // not needed becuase Convox rack is configured to be private
+            //sh(&quot;convox apps params set --app ${APP_NAME} Internal=Yes&quot;)
+        }
+      }
+
+      if(STAGING_PIPELINE_PATH){
+        // check if staging app already exists
+        appExists = shell.pipe(&quot;convox apps | grep &apos;${APP_NAME}-staging &apos;&quot;)
+        if (!appExists) {
+            // will only create the app if app does not already exist
+            sh(&quot;convox apps create ${APP_NAME}-staging&quot;)
+        }
+      }
+
+    stage &apos;Create ECS Repository&apos;
+      // check whether the repository already exists
+      def stagingRepoExists = shell.pipe(&quot;aws ecr describe-repositories --repository-name ${APP_NAME} --region ${aws_region}&quot;)
+      if (!stagingRepoExists) {
+          // will only create if repository does not already exist
+          sh(&quot;aws ecr create-repository --repository-name ${APP_NAME} --region ${aws_region}&quot;)
+      }
+
+    stage &apos;Register Freestyle Job(s)&apos;
+      jenkins.createFreestyleJobs(GIT_URL, jenkinsUrl)
+
+    stage &apos;Register Staging Pipeline Job&apos;
+      if(STAGING_PIPELINE_PATH){
+        jenkins.createPipelineJob(&quot;${APP_NAME}-staging-pipeline&quot;, GIT_URL, BRANCH, STAGING_PIPELINE_PATH, true, jenkinsUrl, jenkinsCredentials, jenkinsScmPoll)
+      }
+
+    stage &apos;Register Production Pipeline Job&apos;
+      if(PRODUCTION_PIPELINE_PATH){
+        jenkins.createPipelineJob(&quot;${APP_NAME}-prod-pipeline&quot;, GIT_URL, BRANCH, PRODUCTION_PIPELINE_PATH, false, jenkinsUrl, jenkinsCredentials, jenkinsScmPoll)
+      }
+}
+</script>
+    <sandbox>false</sandbox>
+  </definition>
+  <triggers/>
+</flow-definition>

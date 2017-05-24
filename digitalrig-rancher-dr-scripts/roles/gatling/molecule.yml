@@ -1,0 +1,14 @@
+---
+ansible:
+  playbook: tests/gatling.yml
+driver:
+  name: docker
+docker:
+  containers:
+    - name: gatling
+      image: centos
+      image_version: latest
+      ansible_groups:
+        - group1
+verifier:
+  name: testinfra

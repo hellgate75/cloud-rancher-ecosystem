@@ -1,0 +1,2 @@
+- name: authorize jenkins pub key
+  authorized_key: key="{{ jenkins_public_key }}" user="centos"

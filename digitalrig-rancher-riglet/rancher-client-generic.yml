@@ -1,0 +1,17 @@
+- hosts: "rancher-base"
+  become: yes
+  roles:
+    - role: ad-client-rancher
+      password: "{{ ad_password }}"
+      domain: "{{ ad_domain }}"
+      realm: "{{ ad_krb_realm }}"
+    - { role: rancher-base, domain: "{{ riglet_domain }}" }
+  tasks:
+    - name: Install pre-req pkgs
+      apt:
+        pkg: "{{item}}"
+        state: installed
+        update_cache: yes
+      with_items:
+      - wget
+      - curl

@@ -1,0 +1,209 @@
+jenkins_backup_s3_bucket_name: jenkins-backup-{{ domain|replace(".","-") }}
+docker_registry_s3_bucket_name: docker-registry-{{ domain|replace(".","-") }}
+
+s3_buckets: []
+default_digitalrig_s3_buckets:
+  - "{{ jenkins_backup_s3_bucket_name }}"
+  - "{{ docker_registry_s3_bucket_name }}"
+
+cloud_init_initialisation: 0
+
+domain_ttl: 60
+
+security_groups: []
+default_digitalrig_security_groups:
+  - name: internal
+    desc: Inter-instance comms
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        group_name: heart
+      - proto: tcp
+        from_port: 8080
+        to_port: 8080
+        group_name: frontend
+      - proto: tcp
+        from_port: 9000
+        to_port: 9000
+        group_name: frontend
+      - proto: tcp
+        from_port: 9090
+        to_port: 9090
+        group_name: frontend
+      - proto: tcp
+        from_port: 9091
+        to_port: 9091
+        group_name: frontend
+      - proto: all
+        group_name: internal
+    rules_egress:
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 5432
+        to_port: 5432
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 9418
+        to_port: 9418
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 11371
+        to_port: 11371
+        cidr_ip: 0.0.0.0/0
+      - proto: all
+        group_name: internal
+  - name: frontend
+    desc: HTTPS access
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        group_name: heart
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: 0.0.0.0/0
+    rules_egress:
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 8080
+        to_port: 8080
+        group_name: internal
+      - proto: tcp
+        from_port: 9000
+        to_port: 9000
+        group_name: internal
+      - proto: tcp
+        from_port: 9090
+        to_port: 9090
+        group_name: internal
+      - proto: tcp
+        from_port: 9091
+        to_port: 9091
+        group_name: internal
+  - name: heart
+    desc: External access machine
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+    rules_egress:
+        - proto: tcp
+          from_port: 80
+          to_port: 80
+          cidr_ip: 0.0.0.0/0
+        - proto: tcp
+          from_port: 443
+          to_port: 443
+          cidr_ip: 0.0.0.0/0
+        - proto: tcp
+          from_port: 22
+          to_port: 22
+          group_name: internal
+        - proto: tcp
+          from_port: 22
+          to_port: 22
+          cidr_ip: 0.0.0.0/0
+          #group_name: frontend
+  - name: rds-launch-wizard
+    desc: RDS security group
+    rules:
+      - proto: tcp
+        from_port: 5432
+        to_port: 5432
+        cidr_ip: 0.0.0.0/0
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+  - name: docker-registry
+    desc: HTTPS access to docker-registry
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        group_name: heart
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 0.0.0.0/0
+    rules_egress:
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+
+default_ami: "{{ aws_base_ami }}"
+default_instance_type: t2.micro
+
+instances: []
+default_digitalrig_instances:
+  - name: heart
+    type: "{{ default_instance_type }}"
+    ami: "{{ default_ami }}"
+    security_groups: heart
+    instance_profile_name: internal-instance
+    keypair: "{{ aws_heart_keypair }}"
+    volume_size: 8
+    volume_type: standard
+  - name: jenkins
+    type: m3.medium
+    ami: "{{ default_ami }}"
+    security_groups: internal
+    instance_profile_name: internal-instance
+    keypair: "{{ aws_internal_keypair }}"
+    volume_size: 12
+    volume_type: gp2
+  - name: nexus
+    type: "{{ default_instance_type }}"
+    ami: "{{ default_ami }}"
+    security_groups: internal
+    keypair: "{{ aws_internal_keypair }}"
+    volume_size: 16
+    volume_type: gp2
+  - name: frontend
+    type: "{{ default_instance_type }}"
+    ami: "{{ default_ami }}"
+    security_groups: frontend
+    keypair: "{{ aws_internal_keypair }}"
+    volume_size: 8
+    volume_type: standard

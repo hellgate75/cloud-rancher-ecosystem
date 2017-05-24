@@ -1,0 +1,28 @@
+---
+- name: Ensure MySQL databases are present.
+  become: yes
+  mysql_db:
+    name: "{{ item.name }}"
+    collation: "{{ item.collation | default('utf8_general_ci') }}"
+    encoding: "{{ item.encoding | default('utf8') }}"
+    state: present
+  with_items: "{{ mysql_databases }}"
+
+- name: Copy Databases to System
+  become: yes
+  copy:
+    src: {{ item.name }}.sql.gz
+    dest: /tmp
+    owner: root
+    mode: 700
+  with_items: '{{ mysql_databases }}'
+  when: "{{ mysql_import }}"
+
+- name: Import Databases
+  become: yes
+  mysql_db:
+    name: "{{ item.name }}"
+    state: import
+    target: /tmp/{{ item.name }}.sql.gz
+  with_items: '{{ mysql_databases }}'
+  when: "{{ mysql_import }}"

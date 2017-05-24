@@ -1,0 +1,22 @@
+- name: newrelic repo key
+  copy: src=RPM-GPG-KEY-NewRelic dest=/etc/pki/rpm-gpg/RPM-GPG-KEY-NewRelic owner=root group=root mode=644
+
+- name: newrelic repo
+  copy: src=newrelic.repo dest=/etc/yum.repos.d/newrelic.repo owner=root group=root mode=644
+
+# workaround for centos 7
+- name: create newrelic group
+  group: name=newrelic state=present
+
+- name: create newrelic user
+  user: name=newrelic group=newrelic state=present createhome=no shell=/bin/false
+
+- name: install sysmond
+  yum: pkg=newrelic-sysmond state=installed
+
+- name: newrelic licence key
+  lineinfile: dest=/etc/newrelic/nrsysmond.cfg regexp="^license_key=" line="license_key={{ newrelic_sysmond_license_key }}"
+  notify: restart sysmond
+
+- name: sysmond service running
+  service: name=newrelic-sysmond state=started enabled=yes

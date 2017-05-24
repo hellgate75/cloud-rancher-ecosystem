@@ -1,0 +1,45 @@
+- name: ensure git installed
+  yum: pkg=git state=installed
+
+- name: create group
+  group: name=crucible state=present
+
+- name: create user
+  user: name=crucible group=crucible state=present
+
+- name: enable installation check
+  stat: path={{ crucible_install_dir }}
+  register: crucible_dir_stat
+
+- name: download crucible
+  get_url: url={{ crucible_download_url }} dest={{ crucible_download_dest }}
+  register: crucible_download
+  when: not crucible_dir_stat.stat.exists
+
+- name: create crucible extract dir
+  file: path={{ crucible_extract_dir }} state=directory owner=crucible group=crucible
+
+- name: create crucible instance dir to store data
+  file: path={{ crucible_instance_dir }} state=directory owner=crucible group=crucible
+
+- name: set environment variable per atlassian guidelines for linux installs
+  lineinfile: dest=/etc/environment regexp="^FISHEYE_INST" line="FISHEYE_INST={{ crucible_instance_dir }}"
+
+- name: extract crucible
+  unarchive: copy=false src={{ crucible_download_dest }} dest={{ crucible_extract_dir }} owner=crucible group=crucible
+  when: not crucible_dir_stat.stat.exists
+
+- name: copy conf file if it does not exist
+  command: creates="{{ crucible_instance_dir }}/config.xml" cp {{ crucible_install_dir }}/config.xml {{ crucible_instance_dir }}/config.xml
+
+- name: ensure conf file owned by crucible
+  file: path="{{ crucible_instance_dir }}/config.xml" owner=crucible group=crucible
+
+- name: set context path in conf file
+  lineinfile: dest="{{ crucible_instance_dir }}/config.xml" regexp="^[\s\t]*<web-server" line='<web-server context="{{ crucible_context_path }}">'
+
+- name: link to latest
+  file: state=link src="{{ crucible_install_dir }}" dest="{{ crucible_latest_dir }}" owner=crucible group=crucible
+
+- name: install service
+  template: src=crucible.j2 dest=/etc/init.d/crucible mode=755 owner=root group=root

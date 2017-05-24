@@ -1,0 +1,22 @@
+---
+  - name: Install depends
+    yum: name={{ item }} state=installed
+    with_items:
+      - python
+      - git
+
+  - name: Clone lets encrypt it git repo
+    git:
+      dest={{ letsencryptit_dir }}
+      force=yes
+      repo=https://github.com/letsencrypt/letsencrypt
+      update=yes
+
+  - name: Make sure Nginx is not running
+    service: name=niginx state=stopped
+
+  - name: Attempt to get the certificate using the standalone authenticator
+    shell: "{{ letsencrypt_command }}"
+
+  - name: Add cron job to try to renew the certificate each weekly
+    cron: name="Renew TLS certificate" special_time=weekly job="{{ letsencrypt_command }}"

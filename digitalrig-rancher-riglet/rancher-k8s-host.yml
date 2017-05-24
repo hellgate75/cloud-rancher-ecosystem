@@ -1,0 +1,4 @@
+- hosts: rancher-k8s-host
+  become: yes
+  roles:
+    - { role: rancher-host, domain: "{{ riglet_domain }}", type: "k8s" }

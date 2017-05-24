@@ -1,0 +1,16 @@
+{
+    "data":{
+        "name":"Generate Yum Metadata on Staging repo",
+        "enabled":true,
+        "typeId":"GenerateMetadataTask",
+        "schedule":"hourly",
+        "properties":[
+            {"key":"repoId","value":"staging"},
+            {"key":"repoDir","value":""},
+            {"key":"singleRpmPerDir","value":"false"},
+            {"key":"forceFullScan","value":"true"}
+        ],
+        "startDate":"1420114332000",
+        "startTime":"12:12"
+    }
+}

@@ -1,0 +1,3 @@
+logentries_repo_os: centos6
+logentries_user_key: unset
+logentries_logfiles: {}

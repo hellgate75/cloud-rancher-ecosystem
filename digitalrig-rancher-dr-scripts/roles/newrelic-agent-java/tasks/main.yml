@@ -1,0 +1,19 @@
+- name: create newrelic java agent directories
+  file: path={{ item }}  state=directory owner=root group=root
+  with_items:
+    - "{{ newrelic_java_agent_lib_dir }}"
+    - "{{ newrelic_java_agent_etc_dir }}"
+    - "{{ newrelic_java_agent_log_dir }}"
+
+- name: create newrelic java agent etc subdirectories
+  file: path={{ newrelic_java_agent_etc_dir }}/{{ item.id }}  state=directory owner=root group=root
+  with_items: "{{ newrelic_java_agent_clients }}"
+
+- name: copy agent files
+  copy: src={{ item }} dest={{ newrelic_java_agent_lib_dir }} owner=root group=root
+  with_fileglob:
+    - "*"
+
+- name: install NR yaml config
+  template: src=newrelic.yml.j2 dest={{ newrelic_java_agent_etc_dir }}/{{ item.id }}/newrelic.yml
+  with_items: "{{ newrelic_java_agent_clients }}"

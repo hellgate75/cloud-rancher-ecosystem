@@ -1,0 +1,4 @@
+- hosts: rancher-env3-host
+  become: yes
+  roles:
+    - { role: rancher-host, domain: "{{ riglet_domain }}", type: "env3" }

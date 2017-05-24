@@ -1,0 +1,6 @@
+selinux_proxy_ports:
+  - 8080 # hosts customerws
+  - 9090 # hosts contactws
+  - 9091 # host contactws admin
+  - 9200 # Ellies journey digital account front end
+  - 9300 # Catherine's pipeline medical profiler front end

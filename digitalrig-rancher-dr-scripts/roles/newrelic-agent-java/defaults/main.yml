@@ -1,0 +1,13 @@
+newrelic_java_agent_clients: {}
+# example format - each dict entry gets own config file in etc_dir/{{key}}/newrelic.yml:
+#    - id: myapp
+#      name: "Application Name"
+#      log_dir: ...
+
+# newrelic_java_agent_license_key: set_me_explicitly
+newrelic_java_agent_java_version: 8
+newrelic_java_agent_lib_dir: /var/lib/newrelic-agent-java{{ newrelic_java_agent_java_version }}
+newrelic_java_agent_etc_dir: /etc/newrelic-agent-java{{ newrelic_java_agent_java_version }}
+newrelic_java_agent_log_dir: /var/log/newrelic-agent-java{{ newrelic_java_agent_java_version }}
+newrelic_java_agent_high_security: false    # until we configure the account
+newrelic_java_agent_log_limit_kb: 20000

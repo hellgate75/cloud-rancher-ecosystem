@@ -1,0 +1,19 @@
+# This is currently unused as the base image build by Packer will have all of it installed.
+# However, Packer's ansible provisioner currently does not take care of installing ansible, meaning we
+# install all the software manuall via shell. That feature is in their pipeline.
+# Once that feature is in, we would instead use some of the code below to install the software instead. So keeping it around.
+
+- name: install packages
+  yum: pkg={{item}} state=installed enablerepo=epel # update_cache=yes
+  with_items:
+  - git
+  - python
+  - python-devel
+  - python-pip
+  - gcc
+
+- name: install pips
+  pip: name={{ item }} state=present
+  with_items:
+    - ansible
+    - httplib2

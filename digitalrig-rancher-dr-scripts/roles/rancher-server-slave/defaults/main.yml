@@ -1,0 +1,4 @@
+---
+rancher_home: /home/rancher
+root_home: /root
+rancher_database_host: rancher-ha-db

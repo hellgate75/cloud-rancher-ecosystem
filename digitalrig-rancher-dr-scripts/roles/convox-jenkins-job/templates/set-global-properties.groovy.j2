@@ -1,0 +1,25 @@
+instance = Jenkins.getInstance();
+
+globalNodeProperties = instance.getGlobalNodeProperties();
+envVarsNodePropertyList = globalNodeProperties.getAll(hudson.slaves.EnvironmentVariablesNodeProperty.class);
+
+newEnvVarsNodeProperty = null;
+envVars = null;
+
+if (envVarsNodePropertyList == null || envVarsNodePropertyList.size() == 0 ) {
+  newEnvVarsNodeProperty = new hudson.slaves.EnvironmentVariablesNodeProperty();
+  globalNodeProperties.add(newEnvVarsNodeProperty);
+  envVars = newEnvVarsNodeProperty.getEnvVars();
+} else {
+  envVars = envVarsNodePropertyList.get(0).getEnvVars();
+}
+
+envVars.put("CONVOX_PASSWORD", "{{ convox_password }}");
+envVars.put("CONVOX_RACKNAME", "{{ convox_rackname }}");
+envVars.put("CONVOX_SECURITYGROUP", "{{ convox_security_group_results.stdout }}");
+
+{% for key, value in global_properties.iteritems() %}
+  envVars.put("{{ key }}", "{{ value }}");
+{% endfor %}
+
+instance.save();

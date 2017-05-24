@@ -1,0 +1,6 @@
+- hosts: rancher-k8s-host
+  become: yes
+  roles:
+    - role: rancher-pipeline
+      type: "minimal"
+      current_role: "rancher-k8s-stack"

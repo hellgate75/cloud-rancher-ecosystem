@@ -1,0 +1,13 @@
+---
+- hosts: all
+
+  tasks:
+    - name: install net-tools (required for test)
+      package: name=net-tools state=present
+
+  roles:
+    - { role: java-8 }
+    - { role: groover.tomcat,
+        local_ansible_data_path: /tmp/,
+        tomcat_connector_port: 8888
+      }

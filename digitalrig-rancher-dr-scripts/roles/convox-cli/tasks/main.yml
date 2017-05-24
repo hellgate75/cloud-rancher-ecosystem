@@ -1,0 +1,8 @@
+- name: download convox cli binaries
+  get_url: url={{ convox_cli_download_url }} dest={{ convox_cli_download_dest }}
+
+- name: create target installation directory
+  file: state=directory  path={{ convox_cli_extracted_dir }}
+
+- name: extract convox cli binaries
+  unarchive: copy=no src={{ convox_cli_download_dest }} dest={{ convox_cli_extracted_dir }}

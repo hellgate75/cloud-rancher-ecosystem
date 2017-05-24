@@ -1,0 +1,135 @@
+---
+# Main list of tasks to be executed.
+#
+#   Fail the play if it runs on an unsupported platform.
+- name: Assert platform is supported
+  tags: tomcat
+  assert:
+    that:
+      - ansible_os_family in tomcat_supported_platforms
+
+
+- name: Load version vars
+  tags: tomcat
+  with_first_found:
+    - ../vars/versions/{{ tomcat_version }}.yml
+    - ../vars/versions/default.yml
+  include_vars: "{{ item }}"
+
+- name: Assert version vars
+  tags: tomcat
+  assert:
+    that:
+      - tomcat_redis_sha256sum not in (None, "")
+
+
+- include: local.yml
+  tags: tomcat
+
+- name: Create Tomcat group
+  tags: tomcat
+  become: yes
+  group:
+    state=present
+    name={{ tomcat_user_group }}
+
+- name: Create Tomcat user
+  tags: tomcat
+  become: yes
+  user:
+    state=present
+    name={{ tomcat_user_name }}
+    home={{ tomcat_user_home }}
+    group={{ tomcat_user_group }}
+    createhome=yes
+    comment="Tomcat service user"
+
+- name: Install catalina home directory
+  tags: tomcat
+  become: yes
+  file:
+    state=directory
+    dest={{ tomcat_env_catalina_home }}
+    owner=0
+    group=0
+    mode=0755
+
+- name: Extract Tomcat installation files to catalina home
+  tags: tomcat
+  become: yes
+  unarchive: src={{ local_ansible_data_path }}/{{ tomcat_redis_filename }}
+             dest="{{ tomcat_env_catalina_home }}/../"
+             creates={{ tomcat_env_catalina_home }}/lib
+
+- name: Install catalina base directory and sub dirs
+  tags: tomcat
+  become: yes
+  with_items:
+    - conf
+    - logs
+    - webapps
+  file:
+    state=directory
+    dest={{ tomcat_env_catalina_base }}/{{ item }}
+    owner={{ tomcat_user_name }}
+    group={{ tomcat_user_group }}
+    mode=0755
+
+- name: Register conf files to be installed
+  tags: tomcat
+  register: tomcat_conf_files
+  find: paths="{{ tomcat_env_catalina_home }}/conf"
+        patterns="^(?!server\.xml).*$" use_regex=True
+
+- name: Install conf files
+  tags: tomcat
+  become: yes
+  with_items: "{{ tomcat_conf_files.files }}"
+  copy: owner={{ tomcat_user_name }} group={{ tomcat_user_group }} mode=0640
+        remote_src=True src={{ item.path }}
+        dest={{ tomcat_env_catalina_base }}/conf/
+
+- name: Install server configuration
+  tags: tomcat
+  become: yes
+  template:
+    src={{ tomcat_server_xml_template }}
+    dest={{ tomcat_env_catalina_base }}/conf/server.xml
+    owner={{ tomcat_user_name }}
+    group={{ tomcat_user_group }}
+    mode=0640
+
+# Install a tomcat service
+- include: service_systemd.yml
+  tags: tomcat
+  become: yes
+  when: ansible_distribution == 'Archlinux'
+
+- include: service_upstart.yml
+  tags: tomcat
+  become: yes
+  when: ansible_distribution == 'Ubuntu'
+
+- include: service_sysvinit.yml
+  tags: tomcat
+  become: yes
+  when: ansible_distribution == 'Debian'
+
+- include: service_tomcat8_init.yml
+  tags: tomcat
+  become: yes
+  when: ansible_os_family == 'RedHat'
+
+- name: set up env vars if required
+  become: yes
+  lineinfile: dest="{{ tomcat_env_catalina_home }}/bin/setenv.sh"
+    create=yes line="export {{ item.key }}={{ item.value }}"
+  failed_when: false
+  no_log: true
+  with_dict: "{{ tomcat_env_vars }}"
+  notify: service restart {{ tomcat_service_name }}
+
+- name: Ensure tomcat service is enabled
+  tags: tomcat
+  become: yes
+  service: enabled=yes name={{ tomcat_service_name }}

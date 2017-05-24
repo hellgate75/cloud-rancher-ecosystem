@@ -1,0 +1,8 @@
+crucible_version: 3.10.4
+crucible_extract_dir: /opt/crucible
+crucible_install_dir: "{{ crucible_extract_dir }}/fecru-{{ crucible_version }}"
+crucible_latest_dir: "{{ crucible_extract_dir }}/latest"
+crucible_instance_dir: /etc/crucible
+crucible_download_dest: /tmp/crucible.zip
+crucible_download_url: https://www.atlassian.com/software/crucible/downloads/binary/crucible-{{ crucible_version }}.zip
+crucible_context_path: crucible

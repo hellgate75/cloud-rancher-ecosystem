@@ -1,0 +1,8 @@
+[defaults]
+remote_user = centos
+host_key_checking = False
+roles_path = {{ dr_common_scripts_dir }}/roles
+inventory = {{ item.checkout_dir }}/inventory/{{ item.ansible_cfg_inventory_subdir }}
+
+[ssh_connection]
+pipelining=True

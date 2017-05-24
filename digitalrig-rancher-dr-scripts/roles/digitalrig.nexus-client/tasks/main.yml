@@ -1,0 +1,19 @@
+---
+- name: bootstrap yum repo
+  template: src=nexus.repo.j2
+        dest=/etc/yum.repos.d/nexus.repo
+        owner=root group=root mode=0644
+  when: ansible_os_family == 'RedHat'
+
+#- name: enable nexus repo
+#  command: yum-config-manager --enable nexus
+
+#- name: do arbitrary yum command to see if nexus available
+#  command: yum search aa
+#  register: yum_search_result
+#  ignore_errors: true
+#  no_log: true
+
+#- name: disable nexus if things broken
+#  command: yum-config-manager --disable nexus
+#  when: "'HTTP Error' in yum_search_result.stderr"

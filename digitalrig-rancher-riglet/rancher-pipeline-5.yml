@@ -1,0 +1,6 @@
+- hosts: rancher-mesos-host
+  become: yes
+  roles:
+    - role: rancher-pipeline
+      type: "normal"
+      current_role: "rancher-mesos-stack"

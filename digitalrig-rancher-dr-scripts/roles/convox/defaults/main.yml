@@ -1,0 +1,6 @@
+convox_instance_count: 3
+convox_instance_type: "t2.small"
+convox_subnet_cidrs: "10.20.1.0/24,10.20.2.0/24,10.20.3.0/24"
+convox_rack_name: "convox"
+convox_password: "PqSKzNqXXbKuuJspbXZBUIRGSAtlER"
+convox_vpc_cidr: "10.20.0.0/16"

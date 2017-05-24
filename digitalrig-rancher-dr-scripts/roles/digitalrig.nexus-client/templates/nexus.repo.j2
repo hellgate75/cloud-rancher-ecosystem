@@ -1,0 +1,27 @@
+[nexus]
+name=Nexus Release Repository
+baseurl={{ nexus_repo_base_url }}releases/
+enabled=0
+protect=0
+gpgcheck=0
+metadata_expire=30s
+autorefresh=1
+type=rpm-md
+[nexus-releases]
+name=Nexus Release Repository
+baseurl={{ nexus_repo_base_url }}releases/
+enabled=0
+protect=0
+gpgcheck=0
+metadata_expire=30s
+autorefresh=1
+type=rpm-md
+[nexus-staging]
+name=Nexus Staging Repository
+baseurl={{ nexus_repo_base_url }}staging/
+enabled=0
+protect=0
+gpgcheck=0
+metadata_expire=30s
+autorefresh=1
+type=rpm-md

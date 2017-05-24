@@ -1,0 +1,9 @@
+{
+    "typeId":"yum.generate",
+    "enabled":true,
+    "properties":[
+        {"key":"repository","value":"releases"},
+        {"key":"deleteProcessing","value":"true"},
+        {"key":"deleteProcessingDelay","value":"10"}
+    ]
+}

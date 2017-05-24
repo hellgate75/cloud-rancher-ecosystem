@@ -1,0 +1,129 @@
+- name: Add jenkins repository
+  yum_repository:
+    name: jenkins
+    description: Jenkins YUM repo
+    baseurl: "{{ jenkins_repo_url_value }}"
+    gpgcheck: Yes
+    gpgkey: "{{ jenkins_repo_key_url_value }}"
+
+- name: Install pre-req pkgs
+  yum: pkg={{item}} state=installed enablerepo=epel
+  with_items:
+  - git
+  - ansible
+  - gcc-c++
+  - make
+  - openssl-devel
+  - createrepo
+  - rpm-build
+  - python-pip
+  - zlib-devel      # needed for fpm
+  - nodejs
+  - npm
+  - jenkins
+  - ruby-devel      # needed for fpm
+  - libyaml-devel   # for rvm
+  - autoconf        # for rvm
+  - readline-devel  # for rvm
+  - libffi-devel    # for rvm
+  - automake        # for rvm
+  - libtool         # for rvm
+  - bison           # for rvm
+  - sqlite-devel    # for rvm
+  register: task_result
+  until: task_result|success
+  retries: 5
+  delay: 1
+
+
+- name: ensure jenkins .ssh dir
+  file: name="{{ jenkins_home }}/.ssh" state=directory owner=jenkins group=jenkins
+
+- name: Add jenkins pk
+  copy: content="{{ jenkins_private_key }}" dest="{{ jenkins_home }}/.ssh/id_rsa" owner=jenkins group=jenkins mode=400
+
+- name: set ssh config (e.g. to disable host checking for rig domain hosts for automated deployment)
+  template: src=ssh.config.j2 dest="{{ jenkins_home }}/.ssh/config" owner=jenkins group=jenkins mode=644
+
+- name: give the jenkins user a shell so it can ssh to push updates [REVIEW]
+  user: name=jenkins shell="/bin/bash"
+
+- name: Copy the default .bashrc file to the jenkins user, as it does not have one and it is required to set the PATH correctly
+  command: "sudo -u jenkins cp /etc/skel/.bashrc {{ jenkins_home }}/.bashrc"
+
+- name: set port
+  lineinfile: dest=/etc/sysconfig/jenkins regexp="^JENKINS_PORT=" line='JENKINS_PORT="{{jenkins_http_port}}"'
+  notify: restart jenkins
+
+- name: set additional args e.g. virtual directory in http url ('/jenkins')
+  lineinfile: dest=/etc/sysconfig/jenkins regexp="^JENKINS_ARGS=" line='JENKINS_ARGS="{{jenkins_args}}"'
+  notify: restart jenkins
+
+- name: Jenkins - configure | Turn off Jenkins setup wizard | Configuring Content Security Policy
+  lineinfile: dest=/etc/sysconfig/jenkins regexp='^JENKINS_JAVA_OPTIONS=' line='JENKINS_JAVA_OPTIONS="{{jenkins_java_options}}"'
+  notify: restart jenkins
+
+- name: Initialise jenkins through 1st run
+  service: name=jenkins state=started enabled=yes
+
+- name: wait until jenkins has created its dir
+  wait_for: path={{ jenkins_home }}/plugins timeout=60
+
+- name: Wait untils Jenkins web API is available
+  shell: curl --head --silent {{ jenkins_instance_url }}/cli/
+  register: result
+  until: result.stdout.find("200 OK") != -1
+  retries: 10
+  delay: 5
+
+- name: Install jenkins plugins
+  with_items: '{{ jenkins_plugins_value }}'
+  become: yes
+  command: java -jar /var/cache/jenkins/war/WEB-INF/jenkins-cli.jar -s "{{ jenkins_instance_url }}" install-plugin {{ item.name | mandatory }}
+  args:
+    creates: /var/lib/jenkins/plugins/{{ item.name }}.jpi
+  notify: restart jenkins
+  register: plugin_result
+
+- name: restart jenkins
+  service: name=jenkins state=restarted
+  when: plugin_result | changed
+
+- name: Wait untils Jenkins web API is available
+  shell: curl --head --silent {{ jenkins_instance_url }}/cli/
+  register: result
+  until: result.stdout.find("200 OK") != -1
+  retries: 10
+  delay: 5
+  when: plugin_result | changed
+
+- name: Install build support gems
+  gem: name={{ item }} state=latest user_install=no
+  become: yes
+  with_items:
+    - fpm
+
+- name: create tar exclusions file
+  copy: src=exclude dest="{{ jenkins_home }}/jenkins_backup_exclusions" owner=jenkins group=jenkins mode=400
+
+- name: create jenkins backup command
+  template: src=backup.sh.j2 dest="{{ jenkins_home }}/jenkins_backup.sh" owner=jenkins group=jenkins mode=700
+
+- name: create backup cron job
+  cron: name="jenkins backup" minute=0 hour=20
+        user="jenkins" job="{{ jenkins_home }}/jenkins_backup.sh > /dev/null 2>&1"
+
+- name: add jenkins user to selected group
+  user: name=jenkins groups={{ item }} append=yes
+  notify: restart jenkins
+  with_items: '{{ jenkins_user_additional_groups }}'
+
+- name: download sonar scanner
+  get_url: url=https://sonarsource.bintray.com/Distribution/sonar-scanner-cli/sonar-scanner-2.6.1.zip dest=/tmp
+
+- name: unpack sonar scanner to location
+  become: yes
+  unarchive: src=/tmp/sonar-scanner-2.6.1.zip dest=/usr/local copy=no
+
+- name: symlink sonar scanner to bin
+  file: src=/usr/local/sonar-scanner-2.6.1/bin/sonar-scanner dest=/usr/local/bin/sonar-scanner state=link force=yes

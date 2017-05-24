@@ -1,0 +1,10 @@
+- hosts: rancher-server-slave
+  become: yes
+  roles:
+    - role: rancher-server-slave
+      domain: "{{ riglet_domain }}"
+      rancher_database_host: "{{ rancher-ha-db-private-ip }}"
+      rancher_database_port: "3306"
+      rancher_database_name: "cattle"
+      rancher_database_username: "cattle"
+      rancher_database_userpasswd: "cattle"

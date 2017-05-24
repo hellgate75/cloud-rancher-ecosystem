@@ -1,0 +1,63 @@
+- name: provision ec2 key
+  copy: content="{{ internal_ec2_private_key }}" dest="{{ id_rsa_location }}" owner={{ ansible_ssh_user}} group={{ ansible_ssh_user}} mode=400
+  no_log: true
+
+- name: look for existing common git repo dir
+  stat: path="{{ dr_common_scripts_dir }}"
+  register: dr_common_scripts_git_dir
+
+- name: clone common repo if needed
+  git: repo="{{ dr_common_git_repo_url }}" dest={{ dr_common_scripts_dir }} update=no
+       key_file={{ id_rsa_location }} accept_hostkey=true force=true version={{dr_common_git_repo_version}}
+  become_user: "{{ ansible_ssh_user }}"
+  when: not dr_common_scripts_git_dir.stat.exists
+
+- name: look for existing rig git repo dir
+  stat: path="{{ rig_git_repo_checkout_dir }}"
+  register: rig_repo_git_dir
+
+- name: clone rig repo if needed
+  git: repo="{{ rig_git_repo_url }}" dest={{ rig_git_repo_checkout_dir }} update=no
+       key_file={{ id_rsa_location }} accept_hostkey=true force=true version={{rig_git_repo_checkout_version}}
+  become_user: "{{ ansible_ssh_user }}"
+  when: not rig_repo_git_dir.stat.exists
+
+- name: set up ansible cfg for rig repo
+  template: src=ansible.cfg.j2 dest={{ item.checkout_dir }}/ansible.cfg
+        owner={{ ansible_ssh_user }} group={{ ansible_ssh_user }} mode=644
+  with_items: [{
+    checkout_dir: "{{ rig_git_repo_checkout_dir }}",
+    ansible_cfg_inventory_subdir: "{{ ansible_inventory }}" }]
+
+- name: look for existing platform git repo dir
+  stat: path="{{ platform_git_repo_checkout_dir }}"
+  register: platform_repo_git_dir
+  when: platform_git_repo_url is defined
+
+- name: clone platform repo if needed
+  git: repo="{{ platform_git_repo_url }}" dest={{ platform_git_repo_checkout_dir }} update=no
+       key_file={{ id_rsa_location }} accept_hostkey=true version={{platform_git_repo_checkout_version}}
+  become_user: "{{ ansible_ssh_user }}"
+  when:  platform_git_repo_url is defined and not platform_repo_git_dir.stat.exists
+
+- name: set up ansible cfg for platform repo
+  template: src=ansible.cfg.j2 dest={{ item.checkout_dir }}/ansible.cfg
+        owner={{ ansible_ssh_user }} group={{ ansible_ssh_user }} mode=644
+  when: platform_git_repo_url is defined
+  with_items: [{
+    checkout_dir: "{{ platform_git_repo_checkout_dir }}",
+    ansible_cfg_inventory_subdir: "{{ ansible_inventory }}" }]
+
+- name: create dr scripts dir
+  file: path={{ dr_scripts_install_home }}/bin state=directory group={{ ansible_ssh_user }} owner={{ ansible_ssh_user}}
+
+- name: copy bin files
+  copy: src={{ item }} dest={{ dr_scripts_install_home }}/bin/{{ item | basename }} owner={{ ansible_ssh_user }} group={{ ansible_ssh_user }} mode=755
+  with_fileglob: "bin/*"
+
+- name: symlink everything in bin to /usr/bin
+  file: state=link src="{{ dr_scripts_install_home }}/bin/{{ item | basename }}" dest="/usr/bin/{{ item | basename }}"
+  with_fileglob: "bin/*"
+
+- name: intall winrm tool for managing windows boxes
+  shell: pip install "pywinrm>=0.1.1"

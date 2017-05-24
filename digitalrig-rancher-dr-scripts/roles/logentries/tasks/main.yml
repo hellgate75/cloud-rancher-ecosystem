@@ -1,0 +1,30 @@
+- name: install logentries repo key
+  copy: src=RPM-GPG-KEY-logentries dest=/etc/pki/rpm-gpg/RPM-GPG-KEY-logentries owner=root group=root mode=644
+
+- name: logentries repo
+  template: src=logentries.repo.j2 dest=/etc/yum.repos.d/logentries.repo owner=root group=root mode=644
+
+- name: install logentries daemon
+  yum: pkg=logentries-daemon state=installed
+
+- name: create conf file if it doesn't exist
+  lineinfile: dest=/etc/le/config owner=root group=root mode=600 create=true
+              line="[Main]" insertbefore=BOF
+
+- name: set up logentries conf file entries
+  lineinfile: dest=/etc/le/config owner=root group=root mode=600
+              regexp="{{ item.key }}" line="{{ item.value }}"
+  notify: restart logentries
+  with_dict:
+    "^user-key": "user-key = {{ logentries_user_key }}"
+
+- name: register host
+  shell: 'le register --name="`hostname`" --hostname "{{ inventory_hostname }}"'
+
+- name: ensure logentries daemon running
+  service: name=logentries state=started enabled=true
+
+- name: add logfiles
+  logentries: path="{{ item.value }}" state=present # note name doesn't work until we've absorbed latest patches to ansible logentries module
+  notify: restart logentries
+  with_dict: "{{ logentries_logfiles }}"

@@ -1,0 +1,56 @@
+###### TF ######
+
+tf_shared:
+ - region
+ - vpc_net_cidr
+ - dmz_net_cidr
+ - dmz_availability_zone
+ - internal_net_cidr
+ - internal_net_prefix
+ - internal_availability_zone
+ - ansible_domain
+ - route_53_domain_id
+ - ad_krb_realm
+ - krb_domain
+ - base_dn
+ - ad_password
+ - keypair
+ - internal_keypair
+ - dr_scripts_ref
+ - digitalrig_riglet_ref
+ - platform_ref
+ - vpn_knock_lower_port
+ - vpn_knock_upper_port
+ - domain_plat
+ - domain_rig
+ - rancheros_ami
+ - ad_type
+
+tf_outputs:
+ - ad-admin-box-ip
+ - ad-dns-1
+ - ad-dns-2
+ - openvpn-host
+ - riglet-vpc-id
+ - rig-internal-route-table-id
+ - rig-dmz-route-table-id
+ - rig-route53-internal-zone-id
+ - rig-default-security-group-id
+ - rig-private-subnet-id
+ - rancher-front-end-private-ip
+ - rancher-front-end-public-ip
+ - rancher-ha-db-private-ip
+ - rancher-server-master-private-ip
+ - rancher-server-slave-private-ip
+ - rancher-app-1-private-ip
+ - rancher-app-2-private-ip
+ - rancher-app-3-private-ip
+ - rancher-infra-1-private-ip
+ - rancher-infra-1-1-private-ip
+ - rancher-infra-1-2-private-ip
+ - rancher-infra-2-private-ip
+ - rancher-infra-2-1-private-ip
+ - rancher-infra-2-2-private-ip
+ - rancher-infra-3-private-ip
+ - rancher-infra-3-1-private-ip
+ - rancher-infra-3-2-private-ip

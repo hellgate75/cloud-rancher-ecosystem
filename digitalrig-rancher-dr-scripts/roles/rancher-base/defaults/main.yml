@@ -1,0 +1,8 @@
+---
+rancher_home: /home/rancher
+uusername: ubuntu
+upassword: ubuntu
+uhome: /home/ubuntu
+ucentos: centos
+ucentospwd: centos
+centos_home: /home/centos

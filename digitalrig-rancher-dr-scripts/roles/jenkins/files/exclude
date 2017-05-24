@@ -1,0 +1,10 @@
+config-history/*
+jobs/*/workspace*
+jobs/*/builds*
+jobs/*/htmlreports/*
+plugins/*/*
+plugins/*.bak
+war
+cache
+.*
+rvm

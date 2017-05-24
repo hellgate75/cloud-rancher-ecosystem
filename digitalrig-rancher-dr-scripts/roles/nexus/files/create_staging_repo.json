@@ -1,0 +1,18 @@
+{
+    "data": {
+        "browseable": true,
+        "checksumPolicy": "IGNORE",
+        "downloadRemoteIndexes": false,
+        "exposed": true,
+        "format": "maven2",
+        "id": "staging",
+        "indexable": true,
+        "name": "Staging",
+        "notFoundCacheTTL": 1440,
+        "provider": "maven2",
+        "providerRole": "org.sonatype.nexus.proxy.repository.Repository",
+        "repoPolicy": "RELEASE",
+        "repoType": "hosted",
+        "writePolicy": "ALLOW_WRITE_ONCE"
+    }
+}

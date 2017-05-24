@@ -1,0 +1,9 @@
+---
+gatling_version: 2.2.2
+gatling_download_url: "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{{gatling_version}}/gatling-charts-highcharts-bundle-{{gatling_version}}-bundle.zip"
+gatling_download_dest: "/tmp/gatling-bundle-{{ gatling_version }}.zip"
+gatling_extracted_dir: "~"
+gatling_dir: "{{ gatling_extracted_dir }}/gatling-charts-highcharts-bundle-{{ gatling_version }}"
+gatling_group: "{{ ansible_user }}"
+gatling_owner: "{{ ansible_user }}"
+gatling_sym_dest: "{{ gatling_extracted_dir }}/gatling-charts-highcharts-bundle"

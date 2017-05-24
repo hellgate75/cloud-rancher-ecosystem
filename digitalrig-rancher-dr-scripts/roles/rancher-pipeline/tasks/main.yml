@@ -1,0 +1,194 @@
+- name: Identify Cattle CI/CD 1 Pipeline Project
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ cattle1_project_name }}"
+  register: cattle1_project
+  when: current_role == "rancher-env1-stack"
+
+- name: Define Project ID for Cattle CI/CD 1 Pipeline Project
+  set_fact:
+    cattle1_project_id: "{{ item.id }}"
+  with_items: "{{ cattle1_project.json.data }}"
+  when: current_role == "rancher-env1-stack"
+
+- name: Check Project ID for Cattle CI/CD 1 Pipeline Project
+  debug:
+    msg: "Project Id : {{ cattle1_project_id }}"
+  when: current_role == "rancher-env1-stack"
+
+- name: Create Full Cattle CI/CD 1 Pipelines
+  become: yes
+  uri:
+    method: POST
+    status_code: 201
+    body: "{{ lookup ('file', item.file) }}"
+    body_format: json
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env/add"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects/{{ cattle1_project_id }}/stack"
+  with_items: '{{ regular_pipeline_rig2 }}'
+  register: projects
+  when: type == "normal" and current_role == "rancher-env1-stack"
+
+- name: Create Minimal Cattle CI/CD 1 Pipelines
+  become: yes
+  uri:
+    method: POST
+    status_code: 201
+    body: "{{ lookup ('file', item.file) }}"
+    body_format: json
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env/add"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects/{{ cattle1_project_id }}/stack"
+  with_items: '{{ minimal_pipeline_rig2 }}'
+  register: projects
+  when: type == "minimal" and current_role == "rancher-env1-stack"
+
+- name: Identify Cattle CI/CD 2 Pipeline Project
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ cattle2_project_name }}"
+  register: cattle2_project
+  when: current_role == "rancher-env2-stack"
+
+- name: Define Project ID for Cattle CI/CD 2 Pipeline Project
+  set_fact:
+    cattle2_project_id: "{{ item.id }}"
+  with_items: "{{ cattle2_project.json.data }}"
+  when: current_role == "rancher-env2-stack"
+
+- name: Check Project ID for Cattle CI/CD 2 Pipeline Project
+  debug:
+    msg: "Project Id : {{ cattle2_project_id }}"
+  when: current_role == "rancher-env2-stack"
+
+- name: Create Full Cattle CI/CD 2 Pipelines
+  become: yes
+  uri:
+    method: POST
+    status_code: 201
+    body: "{{ lookup ('file', item.file) }}"
+    body_format: json
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env/add"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects/{{ cattle2_project_id }}/stack"
+  with_items: '{{ regular_pipeline_rig2 }}'
+  register: projects
+  when: current_role == "rancher-env2-stack"
+
+- name: Identify Cattle CI/CD 3 Pipeline Project
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ cattle3_project_name }}"
+  register: cattle3_project
+  when: type == "normal" and current_role == "rancher-env3-stack"
+
+- name: Define Project ID for Cattle CI/CD 3 Pipeline Project
+  set_fact:
+    cattle3_project_id: "{{ item.id }}"
+  with_items: "{{ cattle3_project.json.data }}"
+  when: type == "normal" and current_role == "rancher-env3-stack"
+
+- name: Check Project ID for Cattle CI/CD 3 Pipeline Project
+  debug:
+    msg: "Project Id : {{ cattle3_project_id }}"
+  when: type == "normal" and current_role == "rancher-env3-stack"
+
+- name: Create Full Cattle CI/CD 3 Pipelines
+  become: yes
+  uri:
+    method: POST
+    status_code: 201
+    body: "{{ lookup ('file', item.file) }}"
+    body_format: json
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env/add"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects/{{ cattle3_project_id }}/stack"
+  with_items: '{{ regular_pipeline_rig2 }}'
+  register: projects
+  when: type == "normal" and current_role == "rancher-env3-stack"

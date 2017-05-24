@@ -1,0 +1,11 @@
+---
+rancher_home: /home/rancher
+root_home: /root
+rancher_port: "8080"
+rancher_host: "{{ rancher_server_master_private_ip }}"
+kubernetes_project_name: "Kubernetes1"
+mesos_project_name: "Mesos1"
+swarm_project_name: "Portainer1"
+cattle1_project_name: "CI-CD1"
+cattle2_project_name: "CI-CD2"
+cattle3_project_name: "CI-CD3"

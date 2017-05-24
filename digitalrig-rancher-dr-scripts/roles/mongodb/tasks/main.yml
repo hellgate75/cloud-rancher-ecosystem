@@ -1,0 +1,29 @@
+---
+  - name: Add Mongodb yum repository
+    copy: src=mongodb.repo dest=/etc/yum.repos.d/mongodb.repo owner=root group=root mode=644
+
+  - name: install mongodb
+    yum: pkg=mongodb-org state=present
+
+  - name: set mongodb to accept non-localhost connections
+    lineinfile:
+      dest: "/etc/mongod.conf"
+      regexp: "^#?  bindIp: 127.0.0.1  # Listen to local interface only, comment to listen on all interfaces."
+      line: "#  bindIp: 127.0.0.1  # Listen to local interface only, comment to listen on all interfaces."
+
+  - name: increase ulimits - part 1
+    shell: "echo '{{ item }}' | tee -a /etc/security/limits.conf"
+    with_items:
+      - "* soft nofile 64000"
+      - "* hard nofile 64000"
+      - "* soft nproc 32000"
+      - "* hard nproc 32000"
+
+  - name: increase ulimits - part 2
+    shell: "echo '{{ item }}' | tee -a /etc/security/limits.d/90-nproc.conf"
+    with_items:
+      - "* soft nproc 32000"
+      - "* hard nproc 32000"
+
+  - name: restart mongodb service
+    service: name=mongod state=restarted

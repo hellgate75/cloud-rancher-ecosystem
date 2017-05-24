@@ -1,0 +1,32 @@
+- name: Fetch security group id from aws
+  shell: aws ec2 describe-security-groups --filters Name=group-name,Values={{ convox_security_group }} --region {{ aws_region }} | python -c "import json,sys;obj=json.load(sys.stdin);print obj.get('SecurityGroups')[0].get('GroupId')"
+  register: convox_security_group_results
+
+- name: Create a directory to hold custom configuration scripts
+  file: path="{{ jenkins_config_script_dir }}" state=directory
+        owner=jenkins group=jenkins mode=755
+
+- name: Copy global properties configuration
+  template: src={{ jenkins_properties_config_script }}.j2 dest={{ jenkins_config_script_dir }}{{ jenkins_properties_config_script }}
+        owner=jenkins group=jenkins mode=755
+
+- name: setup convox global properties
+  shell: echo "script=`cat {{ jenkins_properties_config_script }}`" | curl --data-binary @- {{ jenkins_url }}/scriptText
+  args:
+    chdir: "{{ jenkins_config_script_dir }}"
+
+- name: configure convox job xml
+  template: src=convox-job.xml dest=/tmp/convox-job.xml
+            owner=jenkins group=jenkins mode=755
+
+- name: delete the convox jenkins job if it exists
+  shell: "curl --header 'Content-Type: application/xml' --data '' --silent {{ jenkins_url }}/job/{{ convox_job_name }}/doDelete"
+
+- name: create the convox jenkins job
+  shell: "curl --header 'Content-Type: application/xml' --data-binary @convox-job.xml {{ jenkins_url }}/createItem?name={{ convox_job_name }}"
+  args:
+    chdir: /tmp
+
+- name: register apps
+  shell: "curl --show-error --silent '{{ jenkins_url }}/job/{{ convox_job_name }}/buildWithParameters?delay=0sec&APP_NAME={{ item.appName }}&GIT_URL={{ item.gitUrl }}&STAGING_PIPELINE_PATH={{ item.stagingPipeline }}&PRODUCTION_PIPELINE_PATH={{ item.prodPipeline }}'"
+  with_items: "{{ apps }}"

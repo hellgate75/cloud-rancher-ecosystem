@@ -1,0 +1,14 @@
+apps:
+aws_region:
+convox_rackname:
+convox_password:
+convox_security_group:
+
+jenkins_url: http://localhost:9000/jenkins
+jenkins_scm_poll: "* * * * *"
+jenkins_credentials:
+
+jenkins_config_script_dir: /var/lib/jenkins/config_scripts/
+jenkins_properties_config_script: set-global-properties.groovy
+
+convox_job_name: convox-app-registration

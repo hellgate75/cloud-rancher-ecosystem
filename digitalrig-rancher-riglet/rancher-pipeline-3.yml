@@ -1,0 +1,6 @@
+- hosts: rancher-env3-host
+  become: yes
+  roles:
+    - role: rancher-pipeline
+      type: "normal"
+      current_role: "rancher-env3-stack"

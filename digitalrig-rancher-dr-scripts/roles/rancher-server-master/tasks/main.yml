@@ -1,0 +1,374 @@
+- name: define grants
+  become: yes
+  shell: chown -Rf rancher:rancher /home/rancher
+
+- name: define grants
+  become: yes
+  shell: chown -Rf ubuntu:ubuntu /home/ubuntu
+
+- name: remove rancher server instance on master server
+  become: yes
+  shell: "docker ps -a -q | xargs docker rm -f"
+  when: type == "minimal"
+  ignore_errors: yes
+
+- name: remove rancher database folder
+  become: yes
+  shell: rm -Rf /root/rancher-server
+  when: type == "minimal"
+
+- name: define default rancher database folder
+  become: yes
+  shell: mkdir -p /root/rancher-server/db-data
+  when: type == "minimal"
+
+
+- name: run rancher server instance on master node
+  become: yes
+  shell: docker run -d --hostname={{ rancher_host }} --name rancher-server --privileged --restart=unless-stopped -p 8080:{{ rancher_port }} -v /root/rancher-server/db-data:/var/lib/mysql rancher/server
+  when: type == "minimal"
+
+- name: run rancher server clustered instance on master node
+  become: yes
+  shell: docker run -d --hostname={{ rancher_host }} --name rancher-server --restart=unless-stopped -p 8080:{{ rancher_port }} -p 9345:9345 rancher/server --db-host {{ rancher_database_host }} --db-port {{ rancher_database_port }} --db-user {{ rancher_database_username }} --db-pass {{ rancher_database_userpasswd }} --db-name {{ rancher_database_name }} --advertise-address {{ rancher_server_master_private_ip }}
+  when: type == "normal"
+
+
+- name: Wait for the Rancher server to start
+  become: yes
+  action: command docker logs rancher-server
+  register: rancher_logs
+  until: rancher_logs.stdout.find("Listening on ") != -1
+  retries: 30
+  delay: 10
+
+- pause:
+    seconds: 30
+
+- name: Install curl
+  package:
+      name=curl
+      update_cache=yes
+
+- name: Install python-httplib2
+  package:
+      name=python-httplib2
+
+- name: Identify Kubernetes Project Template
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projectTemplates?name={{ kubernetes_template_name }}"
+  register: kubernetes_json_out
+
+- name: Identify Mesos Project Template
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projectTemplates?name={{ mesos_template_name }}"
+  register: mesos_json_out
+
+- name: Identify Swarm Project Template
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projectTemplates?name={{ swarm_template_name }}"
+  register: swarm_json_out
+
+- name: Identify Cattle Project Template
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projectTemplates?name={{ cattle_template_name }}"
+  register: cattle_json_out
+
+- debug:
+    msg: "Cattle: {{ cattle_json_out.json }}"
+
+- set_fact:
+    cattle_id: "{{ item.id }}"
+  with_items: "{{ cattle_json_out.json.data }}"
+
+- set_fact:
+    kubernetes_id: "{{ item.id }}"
+  with_items: "{{ kubernetes_json_out.json.data }}"
+
+- set_fact:
+    mesos_id: "{{ item.id }}"
+  with_items: "{{ mesos_json_out.json.data }}"
+
+- set_fact:
+    swarm_id: "{{ item.id }}"
+  with_items: "{{ swarm_json_out.json.data }}"
+
+
+- name: Cattle Template REST API Output
+  debug:
+    msg: "Template id : {{ cattle_id }}"
+
+- name: Kubernetes Template REST API Output
+  debug:
+    msg: "Template id : {{ kubernetes_id }}"
+
+- name: Mesos Template REST API Output
+  debug:
+    msg: "Template id : {{ mesos_id }}"
+
+- name: Swarm Template REST API Output
+  debug:
+    msg: "Template id : {{ swarm_id }}"
+
+- name: Create All Projects
+  become: yes
+  uri:
+    method: POST
+    status_code: 201
+    body: "{{ lookup ('template', item.template) }}"
+    body_format: json
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env/add"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/project"
+  with_items: '{{ rancher_environment_values }}'
+  register: projects
+  when: type == "normal"
+
+- name: Create Minimal Projects
+  become: yes
+  uri:
+    method: POST
+    status_code: 201
+    body: "{{ lookup ('template', item.template) }}"
+    body_format: json
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env/add"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/project"
+  with_items: '{{ rancher_environment_minimal_values }}'
+  register: projects
+  when: type == "minimal"
+
+- name: Identify Old Default Project
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ default_rancher_project_name }}"
+  register: old_default_project
+
+- name: Identify New Default Project
+  become: yes
+  uri:
+    method: GET
+    status_code: 200
+    return_content: yes
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects?name={{ default_project_name }}"
+  register: default_project
+
+- set_fact:
+    default_project_id: "{{ item.id }}"
+  with_items: "{{ default_project.json.data }}"
+
+- set_fact:
+    old_default_project_id: "{{ item.id }}"
+  with_items: "{{ old_default_project.json.data }}"
+
+
+- name: New Default Project ID
+  debug:
+    msg: "Project id : {{ default_project_id }}"
+
+- name: Old Default Project ID
+  debug:
+    msg: "Project id : {{ old_default_project_id }}"
+
+- name: Define New Default Project
+  become: yes
+  uri:
+    method: POST
+    body: '{"name":"defaultProjectId","value":"\"{{ default_project_id }}\"","description":null}'
+    status_code: 201
+    body_format: json
+    headers:
+      Accept: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/userpreferences"
+
+- name: Deactivate Old Default Project
+  become: yes
+  uri:
+    method: POST
+    status_code: 200
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects/{{ old_default_project_id }}/?action=deactivate"
+
+- pause:
+    seconds: 10
+
+- name: Delete Old Default Project
+  become: yes
+  uri:
+    method: DELETE
+    status_code: 200
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+      Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+      Connection: "keep-alive"
+      Content-Length: "0"
+      Host: "{{ rancher_host }}:{{ rancher_port }}"
+      Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+      Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env"
+      x-api-action-links: "actionLinks"
+      x-api-csrf: "EA01B4BB8E"
+      x-api-no-challenge: "true"
+    url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/projects/{{ old_default_project_id }}"
+
+# - name: Configure API Settings
+#   become: yes
+#   uri:
+#     method: PUT
+#     status_code: 200
+#     body: "{{ lookup ('template', 'api-settings.json.j2') }}"
+#     body_format: json
+#     return_content: yes
+#     headers:
+#       Accept: "application/json"
+#       Content-Type: "application/json"
+#       Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+#       Connection: "keep-alive"
+#       Host: "{{ rancher_host }}:{{ rancher_port }}"
+#       Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+#       Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env/add"
+#       x-api-action-links: "actionLinks"
+#       x-api-csrf: "EA01B4BB8E"
+#       x-api-no-challenge: "true"
+#     url: "http://{{ rancher_host }}:{{ rancher_port }}http://192.168.50.113:8080/v2-beta/settings/api.host"
+#   register: results
+
+# - name: Configure Catalog List
+#   become: yes
+#   uri:
+#     method: PUT
+#     status_code: 200
+#     body: "{{ lookup ('file', 'catalog.json') }}"
+#     body_format: json
+#     return_content: yes
+#     headers:
+#       Accept: "application/json"
+#       Content-Type: "application/json"
+#       Accept-Language: "en-IE,en-US;q=0.8,en;q=0.6"
+#       Connection: "keep-alive"
+#       Host: "{{ rancher_host }}:{{ rancher_port }}"
+#       Origin: "http://{{ rancher_host }}:{{ rancher_port }}"
+#       Referer: "http://{{ rancher_host }}:{{ rancher_port }}/settings/env/add"
+#       x-api-action-links: "actionLinks"
+#       x-api-csrf: "EA01B4BB8E"
+#       x-api-no-challenge: "true"
+#     url: "http://{{ rancher_host }}:{{ rancher_port }}/v2-beta/settings/catalog.url"
+#   register: results

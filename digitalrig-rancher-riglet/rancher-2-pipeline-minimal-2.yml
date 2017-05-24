@@ -1,0 +1,6 @@
+- hosts: rancher-env1-multi-host
+  become: yes
+  roles:
+    - role: rancher-pipeline-2
+      type: "minimal"
+      current_role: "rancher-env2-stack"

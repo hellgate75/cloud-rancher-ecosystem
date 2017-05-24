@@ -1,0 +1,2 @@
+- name: restart nexus
+  service: name=nexus state=restarted pattern={{nexus_dir}}

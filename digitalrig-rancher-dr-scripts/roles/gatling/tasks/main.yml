@@ -1,0 +1,22 @@
+---
+  - name: enable installation check
+    stat: path={{ gatling_dir }}
+    register: gatling_dir_stat
+
+  - name: make sure unzip is available (to extract archive)
+    package: name=unzip state=present
+
+  - name: download gatling
+    get_url: url={{ gatling_download_url }} dest={{ gatling_download_dest }} validate_certs=no
+    when: not gatling_dir_stat.stat.exists
+
+  - name: Extract gatling with specific group/owners
+    unarchive: src={{ gatling_download_dest }} dest={{ gatling_extracted_dir }} group={{ gatling_group }} owner={{ gatling_owner }} copy=no
+    when: not gatling_dir_stat.stat.exists
+
+  # group / owner do not work in Ansible 2.1.0's unarchive - so add this task
+  - name: Set permissions (workaround Ansible bug)
+    file: path={{ gatling_extracted_dir }} owner={{ gatling_owner }} group={{ gatling_group }} recurse=yes
+
+  - name: create symbolic links to gatling
+    file: src={{ gatling_dir }} dest={{ gatling_sym_dest }} group={{ gatling_group }} owner={{ gatling_owner }} state=link

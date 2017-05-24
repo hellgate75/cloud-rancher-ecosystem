@@ -1,0 +1,4 @@
+- hosts: rancher-server
+  become: yes
+  roles:
+    - { role: rancher-server-master, domain: "{{ riglet_domain }}", type: "minimal"  }

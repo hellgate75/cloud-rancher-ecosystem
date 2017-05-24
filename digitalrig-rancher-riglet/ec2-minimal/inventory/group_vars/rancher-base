@@ -1,0 +1,4 @@
+ansible_user: rancher
+ansible_connection: ssh
+gather_facts: yes
+aws_region: "{{ region }}"

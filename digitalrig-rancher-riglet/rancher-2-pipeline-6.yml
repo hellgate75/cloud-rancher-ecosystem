@@ -1,0 +1,6 @@
+- hosts: rancher-portainer-host
+  become: yes
+  roles:
+    - role: rancher-pipeline-2
+      type: "normal"
+      current_role: "rancher-portainer-stack"

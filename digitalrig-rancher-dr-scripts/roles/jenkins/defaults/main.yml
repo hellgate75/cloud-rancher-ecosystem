@@ -1,0 +1,70 @@
+---
+jenkins_home: /var/lib/jenkins
+jenkins_http_port: 9000
+jenkins_prefix_value: jenkins
+jenkins_args: "--prefix=/{{ jenkins_prefix_value }}"
+# This is required to fix the gatling report rendering issues as discussed in here:
+# https://github.com/gatling/gatling/issues/2889
+# The first two properties -Djava.awt.headless=true -Djenkins.install.runSetupWizard=false where there by default, just appending the rest
+jenkins_java_options: "-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false -Dhudson.model.ParametersAction.keepUndefinedParameters=true -Dhudson.model.DirectoryBrowserSupport.CSP=\\\"sandbox allow-scripts; style-src 'unsafe-inline' *;script-src 'unsafe-inline' *;\\\""
+jenkins_backup_s3_bucket_name: jenkins-backup-{{ domain|replace(".","-") }}
+jenkins_user_additional_groups: []
+jenkins_repo_name_value: Jenkins
+jenkins_repo_url_value: http://pkg.jenkins-ci.org/redhat
+jenkins_repo_key_url_value: http://pkg.jenkins-ci.org/redhat/jenkins-ci.org.key
+jenkins_instance_url: "http://{{ inventory_hostname }}:{{ jenkins_http_port }}/jenkins"
+jenkins_plugins_value:
+  - name: dashboard-view
+  - name: depgraph-view
+  - name: git
+  - name: promoted-builds
+  - name: credentials
+  - name: authentication-tokens
+  - name: git-client
+  - name: maven-plugin
+  - name: scm-api
+  - name: branch-api
+  - name: matrix-project
+  - name: token-macro
+  - name: conditional-buildstep
+  - name: run-condition
+  - name: parameterized-trigger
+  - name: ssh-credentials
+  - name: mailer
+  - name: jquery-ui
+  - name: copyartifact
+  - name: jquery
+  - name: build-pipeline-plugin
+  - name: delivery-pipeline-plugin
+  - name: show-build-parameters
+  - name: htmlpublisher
+  - name: job-dsl
+  - name: brakeman
+  - name: veracode-scanner
+  - name: doclinks
+  - name: gatling
+  - name: nested-view
+  - name: envinject
+  - name: ansicolor
+  - name: greenballs
+  - name: cloudbees-folder
+  - name: ace-editor
+  - name: script-security
+  - name: workflow-job
+  - name: workflow-api
+  - name: workflow-cps
+  - name: workflow-durable-task-step
+  - name: workflow-basic-steps
+  - name: workflow-cps-global-lib
+  - name: workflow-scm-step
+  - name: workflow-support
+  - name: workflow-step-api
+  - name: workflow-aggregator
+  - name: workflow-multibranch
+  - name: docker-workflow
+  - name: docker-commons
+  - name: nodejs
+  - name: bitbucket-pullrequest-builder
+  - name: cobertura
+  - name: credentials-binding
+  - name: ssh-agent

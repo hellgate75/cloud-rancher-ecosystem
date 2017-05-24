@@ -1,0 +1,7 @@
+- name: Update apt-repo
+  apt: update_cache=true
+
+- name: Install yum package
+  apt: pkg={{item}} state=installed
+  with_items:
+    - yum

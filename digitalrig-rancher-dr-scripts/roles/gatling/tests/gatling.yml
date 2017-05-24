@@ -1,0 +1,6 @@
+- hosts: all
+
+  roles:
+    - { role: gatling,
+        gatling_extracted_dir: /opt
+      }

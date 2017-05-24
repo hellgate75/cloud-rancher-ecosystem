@@ -1,0 +1,19 @@
+ansible_ssh_user: centos
+
+platform_inventory_subdir: ""
+rig_inventory_subdir: ""
+
+id_rsa_location: "~{{ ansible_ssh_user }}/.ssh/id_rsa"
+
+git_repo_checkout_path: "~{{ ansible_ssh_user }}"
+
+dr_common_scripts_dir: "{{ git_repo_checkout_path }}/dr-scripts"
+dr_common_git_repo_version: "HEAD"
+
+rig_git_repo_checkout_dir: "{{ git_repo_checkout_path }}/digitalrig"
+rig_git_repo_checkout_version: "HEAD"
+
+platform_git_repo_checkout_dir: "{{ git_repo_checkout_path }}/platform"
+platform_git_repo_checkout_version: "HEAD"
+
+dr_scripts_install_home: /opt/digitalrig-scripts

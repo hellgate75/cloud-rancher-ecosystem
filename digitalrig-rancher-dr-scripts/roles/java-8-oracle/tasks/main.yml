@@ -1,0 +1,23 @@
+- name: download java
+  command: "wget -q -O {{java_archive}} --no-check-certificate --no-cookies --header 'Cookie: oraclelicense=accept-securebackup-cookie' {{download_url}} creates={{java_archive}}"
+
+- name: unpack archive
+  command: "tar -zxf {{java_archive}} -C {{download_folder}} creates={{java_name}}"
+
+- name: fix ownership
+  file: state=directory path={{java_name}} owner=root group=root recurse=yes
+
+- name: make Java available for system
+  command: 'alternatives --install "/usr/bin/java" "java" "{{java_name}}/bin/java" 2000'
+
+- name: clean up
+  file: state=absent path={{java_archive}}
+
+- name: link to installed version
+  file: src={{java_name}} dest=/opt/java owner=root group=root state=link
+
+- name: link to binaries we want in path (eg jar)
+  file: src={{java_name}}/bin/jar dest=/usr/bin/jar owner=root group=root state=link
+
+- name: set java home
+  lineinfile: dest=/etc/profile.d/java.sh regexp="^export JAVA_HOME.*" line="export JAVA_HOME=/opt/java" create=yes owner=root group=root

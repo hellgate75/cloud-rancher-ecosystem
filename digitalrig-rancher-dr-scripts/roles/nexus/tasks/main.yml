@@ -1,0 +1,156 @@
+---
+  - name: install packages
+    yum: pkg={{ item }} state=latest # update-cache=yes
+    with_items:
+      - createrepo
+      - java-1.8.0-openjdk
+
+  - name: create "nexus" group
+    group: name=nexus state=present
+
+  - name: create "nexus" user
+    user: name=nexus group=nexus state=present
+
+  - name: enable installation check
+    stat: path={{nexus_dir}}
+    register: nexus_dir_stat
+
+  - name: download nexus
+    get_url: url={{nexus_download_url}} dest={{nexus_download_dest}}
+    register: nexus_download
+    when: not nexus_dir_stat.stat.exists
+    tags:
+      - download
+
+  - name: create {{nexus_extracted_dir}} directory
+    file: path={{nexus_extracted_dir}} state=directory
+    when: not nexus_dir_stat.stat.exists
+
+  - name: extract nexus to {{nexus_extracted_dir}}
+    command: tar xzf {{nexus_download_dest}} -C {{nexus_extracted_dir}} --strip-components=1
+    when: not nexus_dir_stat.stat.exists
+
+  - name: move nexus to {{nexus_dir}} directory
+    command: cp -a {{nexus_extracted_dir}}/. {{nexus_dir}}
+    when: not nexus_dir_stat.stat.exists
+    notify: restart nexus
+
+  - name: remove {{nexus_extracted_dir}} directory
+    command: rm -rf {{nexus_extracted_dir}}
+    when: not nexus_dir_stat.stat.exists
+
+  - name: make {{nexus_dir}} directory property of nexus user/group
+    file: path={{nexus_dir}} group=nexus owner=nexus recurse=true
+
+  - name: make nexus runnable by "nexus" user
+    lineinfile: dest={{nexus_dir}}/bin/nexus regexp="#RUN_AS_USER=" line="RUN_AS_USER=nexus" backrefs=true
+
+  - name: set NEXUS_HOME
+    lineinfile: dest={{nexus_dir}}/bin/nexus regexp="^NEXUS_HOME" line="NEXUS_HOME={{nexus_dir}}" backrefs=true
+
+  - name: create nexus piddir
+    file: path=/var/run/nexus state=directory group=nexus owner=nexus
+
+  - name: Copy tmpfiles for /var/run/tmpfiles
+    copy:
+      src: nexus-tmpfiles.d
+      dest: /etc/tmpfiles.d/nexus.conf
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: set nexus pidir
+    lineinfile: dest={{nexus_dir}}/bin/nexus regexp="^#PIDDIR=" line="PIDDIR=/var/run/nexus" backrefs=true
+
+  - name: create symbolic links to /etc/init.d/nexus
+    file: src={{nexus_dir}}/bin/nexus dest=/etc/init.d/nexus state=link
+
+  - name: configure runlevel links for nexus
+    command: chkconfig --add nexus
+
+  - name: set nexus working directory
+    lineinfile: dest={{nexus_dir}}/conf/nexus.properties regexp="^nexus-work=" line="nexus-work=${bundleBasedir}/work/nexus"
+    notify: restart nexus
+
+  - name: set port
+    lineinfile: dest={{nexus_dir}}/conf/nexus.properties regexp="^application-port=" line="application-port={{ nexus_application_port }}"
+    notify: restart nexus
+
+  - name: nexus max memory
+    lineinfile: dest="{{ nexus_dir }}/bin/jsw/conf/wrapper.conf" regexp="^wrapper.java.maxmemory=.*?$" line="wrapper.java.maxmemory={{ nexus_maxmemory }}"
+    notify: restart nexus
+
+  - name: ensure nexus running
+    service: name=nexus state=restarted
+    tags:
+      - download
+
+###  The rest of this sets up the staging repo and configures the yum generation  ###
+
+  - name: wait for nexus api to be up
+    uri: url=http://localhost:{{ nexus_application_port }}/nexus/service/local/repositories/releases
+         user=admin password=admin123 force_basic_auth=yes status_code=200
+    register: result
+    until: result.status == 200
+    retries: 60
+    delay: 4
+
+  - name: get list of existing repos
+    uri:
+      url: "http://localhost:{{ nexus_application_port }}/nexus/service/local/repositories"
+      return_content: yes
+    register: repos_list
+
+  - name: create the staging repo
+    uri:
+      url: http://localhost:{{ nexus_application_port }}/nexus/service/local/repositories
+      user: admin
+      password: admin123
+      force_basic_auth: yes
+      method: POST
+      body: "{{ lookup('file','create_staging_repo.json') }}"
+      status_code: 201
+      body_format: json
+    when: repos_list.content.find('/nexus/service/local/repositories/staging') == -1
+
+
+  - name: create staging and releases repo yum capability
+    uri:
+      url: http://localhost:{{ nexus_application_port }}/nexus/service/siesta/capabilities
+      user: admin
+      password: admin123
+      force_basic_auth: yes
+      method: POST
+      body: "{{ item }}"
+      status_code: 200
+      body_format: json
+    with_items:
+      - "{{ lookup('file','releases_generate_yum_data_capability.json') }}"
+      - "{{ lookup('file','staging_generate_yum_data_capability.json') }}"
+    # FIXME: need to use better check (analyse output of http://nexus.localrig:9003/nexus/service/siesta/capabilities)
+    when: repos_list.content.find('/nexus/service/local/repositories/staging') == -1
+
+
+  - name: create staging and releases repo yum task
+    uri:
+      url: http://localhost:{{ nexus_application_port }}/nexus/service/local/schedules
+      user: admin
+      password: admin123
+      force_basic_auth: yes
+      method: POST
+      body: "{{ item }}"
+      status_code: 201
+      body_format: json
+    with_items:
+      - "{{ lookup('file','releases_generate_yum_data_task.json') }}"
+      - "{{ lookup('file','staging_generate_yum_data_task.json') }}"
+
+#  - name:  create XML Repo
+#    uri: url=http://localhost:{{ nexus_application_port }}/nexus/service/local/repositories
+#         user=admin
+#         password=admin123
+#         force_basic_auth=yes
+#         method=POST 
+#         HEADER_Content-Type="application/xml"
+#         HEADER_Accept="application/xml"
+#         body={{xml_data}}

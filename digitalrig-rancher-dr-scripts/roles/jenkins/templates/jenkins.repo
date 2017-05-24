@@ -1,0 +1,4 @@
+[jenkins]
+name={{ jenkins_repo_name_value }}
+baseurl={{ jenkins_repo_url_value }}
+gpgcheck=1

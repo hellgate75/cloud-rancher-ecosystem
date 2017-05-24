@@ -1,0 +1,10 @@
+- hosts: rancher-front-end
+  become: yes
+  become_user: root
+  roles:
+    - role: digitalrig.rancher-docker
+      domain: "{{ riglet_domain }}"
+    - role: rancher-front-end
+      domain: "{{ riglet_domain }}"
+    - role: digitalrig.rancher-front-end-apps
+      domain: "{{ riglet_domain }}"

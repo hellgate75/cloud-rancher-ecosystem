@@ -1,0 +1,4 @@
+- hosts: rancher-mesos-host
+  become: yes
+  roles:
+    - { role: rancher-host, domain: "{{ riglet_domain }}", type: "mesos" }

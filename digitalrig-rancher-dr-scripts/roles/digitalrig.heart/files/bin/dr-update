@@ -1,0 +1,21 @@
+#!/bin/bash -e
+
+DR_COMMON_DIR=~/dr-scripts
+DIGITALRIG_DIR=~/digitalrig
+PLATFORM_DIR=~/platform
+
+cd $DR_COMMON_DIR
+echo Pulling from `pwd`
+git pull
+
+if [ -d $DIGITALRIG_DIR ]; then
+    cd $DIGITALRIG_DIR
+    echo Pulling from `pwd`
+    git pull
+fi
+
+if [ -d $PLATFORM_DIR ]; then
+    cd $PLATFORM_DIR
+    echo Pulling from `pwd`
+    git pull
+fi

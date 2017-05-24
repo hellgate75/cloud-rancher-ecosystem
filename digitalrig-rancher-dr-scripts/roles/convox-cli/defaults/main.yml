@@ -1,0 +1,3 @@
+convox_cli_download_url: http://install.convox.com/linux.zip
+convox_cli_download_dest: /tmp/convox-latest.zip
+convox_cli_extracted_dir: /usr/bin

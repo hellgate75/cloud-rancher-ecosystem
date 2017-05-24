@@ -1,0 +1,115 @@
+#cloud-config
+
+hostname: "{{ item.name }}"
+fqdn: "{{ item.name }}.{{ domain }}"
+
+# Set our hostname in /etc/hosts too
+manage_etc_hosts: true
+
+# Our script below depends on this:
+packages:
+  - epel-release
+
+# Execute on every boot to set a DNS entry pointing to this instance.
+# This requires the instance having an appropriate IAM role set,
+# so it has permission to perform the changes to Route53.
+
+# The rest enables the server to pull the relevant src repos from bitbucket and initialise itself by
+# executing the relevant playbook
+
+write_files:
+  - path: /var/lib/cloud/scripts/per-boot/set_route53_dns.sh
+    permissions: 0755
+    content: |
+      #!/bin/sh
+      FQDN=`hostname -f`
+      ZONE_ID="{{ route53_zone_id }}"
+      TTL={{ domain_ttl }}
+      SELF_META_URL="http://169.254.169.254/latest/meta-data"
+      PUBLIC_DNS=$(curl ${SELF_META_URL}/public-hostname 2>/dev/null)
+
+      cat << EOT > /tmp/aws_r53_batch.json
+      {
+        "Comment": "Assign AWS Public DNS as a CNAME of hostname",
+        "Changes": [
+          {
+            "Action": "UPSERT",
+            "ResourceRecordSet": {
+              "Name": "${FQDN}.",
+              "Type": "CNAME",
+              "TTL": ${TTL},
+              "ResourceRecords": [
+                {
+                  "Value": "${PUBLIC_DNS}"
+                }
+              ]
+            }
+          }
+        ]
+      }
+      EOT
+
+      aws route53 change-resource-record-sets --hosted-zone-id ${ZONE_ID} --change-batch file:///tmp/aws_r53_batch.json
+      rm -f /tmp/aws_r53_batch.json
+  - path: /var/lib/cloud/keys/bitbucket_key
+    permissions: 0600
+    owner: root:root
+    content: |
+      -----BEGIN RSA PRIVATE KEY-----
+      MIIEpAIBAAKCAQEAqAosiwdsUQBZCEsiPYfkVr65DfjptsopwZSv2MerK8iAB45p
+      T7jZZx+nro3ru+kHwIED2awZC2w2ZAGqH7UXVhdVjYJo6UWAw44bTZ98ZsPEyWoh
+      rWbpOR9J4YGWA01Y5RBFL+scCkGrw4gKSjsmCaLAHKzDXYt872vbA6eQF9vDrah2
+      sruwNGI5+p46g1iP0IDHo0humrcBKdvozbyx3Yv/ap9lT3vnkkC2x6OzaOVOyoL0
+      arZWxtHtSEGT2yuqyEExfUqliav1ORgWUUkngblykwUYfTWj+oNFT3QPoWq8kjqP
+      lctrhI+GLDG5U8GVlxoDN1HtMEKU4a4EoitVcQIDAQABAoIBAHFwPNW2MycThwcU
+      QY8sN7dflWmbSZs+KqYmC/faAvHRrqxrNSi+bvUw52/tGuCF1dfcwI6noViWurkU
+      bpZtF83kfrrC+LPRWbWqL0BdlAuDyUr3PLjkqjkHqEZ1xqGAC6zHKQ3KN+msn5mm
+      MtwdxfXnSq2Q62oxCixOsVFsQtf3Sb7qAWXA6vSeBvvBifC4XzVIlDPl/tWaT3HZ
+      WWDd3GJsfd4F8Vufs561ZkZdpecydPB47ou+2GkjcZiOe/Ki9CiGMJSJVbqGDPdI
+      pyn4/Vh2U0u+dSD+uX8PxueVSF90e2p7Y9xHyIoY4TFdmPHPei62kzSLLhRUjcn/
+      CKjoFoECgYEAz/18uMfiQioSjRVZ+UW2ha3pizoJ7XYt8HisoNtC5dAJYCrJb2Dd
+      LLkFmsbqD5JBzQEZ/EIRsVNNm4187EnC0Ij1YKEzGE+L+MJVvtodVqdEaNfdeYMT
+      HsmaMtUw/RrGZFLsSOJQ7o9+Ox2AV5cNOzk5/oEdHw5P9MnQWhPnnGkCgYEAztPx
+      jW3Zwufag/nIMnX9gr94waUex4fA0/sSZmfCD7p1meBre9S21CHvtRx3JEGFru0x
+      kJ0gQ97GDEsUV2LBN5iFD0dcJzbix/NmRD1XZxICE3mS2UWi1e9j0vtXzKJRpxM1
+      hSkyu4gaLG9ARK50v9jC5uTaiNCcblyyFGCAb8kCgYEAknDYosVhgdJbk2goHEFA
+      PKjxWWy41q+xsrFUYkFeva4XG9WkVD4wG6/9yTcqT2Jb3/pZkGn4SRDtAIvDHB7n
+      AqqbkbiN4B0J4VD6zFCH/Z3xpZvvPQHTsYaigg3m2x5B9xsHcF2gPAdeCkNAPOuG
+      jl9BfPbtSRNrql95yiJfnZkCgYEAylsi4jSv8bnWWXlxHa3DMsES7KMY0i9Hwh7L
+      idXKUIkltj+T6bvchQAO/yuyhY51tQfsjoisoLq9Ghn69ORyFmrrBF/VEajpiKfj
+      TrCVawp7bYJs4pb3Ekj9adbvuA63xLdOjdIZCNHIieDvCEOHhowVZMJT7bfs1S1s
+      LfOctcECgYBy0kT4Vc7IxK8VIGuEaNQB8gjY/wUqxOstZT4MLdbQO+qSeHrTfN32
+      rq8+o4hupRSpIUoE/GW0/gcGzd+VbVQzJge8rBk1i75D+hkNqP+2ZQkjx2h42GI3
+      HqCEe/LKC64n4EqCtOui8a+Co5OcF2ExLGoajRzS36Up6ItByjsV4Q==
+      -----END RSA PRIVATE KEY-----
+  - path: /var/lib/cloud/keys/bitbucket_key.pub
+    permissions: 0600
+    owner: root:root
+    content: |
+      ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCoCiyLB2xRAFkISyI9h+RWvrkN+Om2yinBlK/Yx6sryIAHjmlPuNlnH6eujeu76QfAgQPZrBkLbDZkAaoftRdWF1WNgmjpRYDDjhtNn3xmw8TJaiGtZuk5H0nhgZYDTVjlEEUv6xwKQavDiApKOyYJosAcrMNdi3zva9sDp5AX28OtqHayu7A0Yjn6njqDWI/QgMejSG6atwEp2+jNvLHdi/9qn2VPe+eSQLbHo7No5U7KgvRqtlbG0e1IQZPbK6rIQTF9SqWJq/U5GBZRSSeBuXKTBRh9NaP6g0VPdA+harySOo+Vy2uEj4YsMblTwZWXGgM3Ue0wQpThrgSiK1Vx
+  - path: /var/lib/cloud/ansible/ansible.cfg
+    permissions: 0644
+    owner: root:root
+    content: |
+      [defaults]
+      roles_path = /var/lib/digitalrig/dr-scripts/roles
+  - path: /var/lib/cloud/scripts/self-initialise.sh
+    permissions: 0755
+    owner: root:root
+    content: |
+      #!/bin/sh
+      if [ {{ cloud_init_initialisation }} == 1 ]; then
+          echo "This server is about to initialise itself. Stand back!"
+          mkdir /var/lib/digitalrig
+          ssh-agent bash -c 'ssh-add /var/lib/cloud/keys/bitbucket_key; ssh -o "StrictHostKeyChecking no" git@bitbucket.org'
+          ssh-agent bash -c 'ssh-add /var/lib/cloud/keys/bitbucket_key; git clone git@bitbucket.org:digitalrigbitbucketteam/dr-scripts.git /var/lib/digitalrig/dr-scripts'
+          ssh-agent bash -c 'ssh-add /var/lib/cloud/keys/bitbucket_key; git clone git@bitbucket.org:digitalrigbitbucketteam/digitalrig-riglet.git /var/lib/digitalrig/digitalrig-riglet'
+          cd /var/lib/digitalrig/digitalrig-riglet
+          sed -i "s/^\[{{ item.name }}:children\]$/[{{ item.name }}]/" inventory/{{ domain }}/inventory
+          sed -i "s/^tag_Name_{{ item.name }}$/localhost ansible_connection=local/" inventory/{{ domain }}/inventory
+          export ANSIBLE_CONFIG=/var/lib/cloud/ansible/ansible.cfg; ansible-playbook -i inventory/{{ domain }}/inventory {{ item.name }}.yml
+      fi
+
+runcmd:
+  - /var/lib/cloud/scripts/per-boot/set_route53_dns.sh
+  - /var/lib/cloud/scripts/self-initialise.sh

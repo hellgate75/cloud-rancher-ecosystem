@@ -1,0 +1,8 @@
+#!/bin/bash
+TODAY=$(date +%F)
+DUMP=jenkins_data.$TODAY.tar.gz
+JENKINS_HOME=/var/lib/jenkins
+tar --exclude-from jenkins_backup_exclusions -zcf $DUMP $JENKINS_HOME
+aws s3 cp $DUMP s3://{{ jenkins_backup_s3_bucket_name }}
+rm -f $DUMP
+

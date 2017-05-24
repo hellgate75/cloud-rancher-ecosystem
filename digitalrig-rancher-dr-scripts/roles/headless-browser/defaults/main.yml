@@ -1,0 +1,2 @@
+chromedriver_download_url: https://chromedriver.storage.googleapis.com/2.24/chromedriver_linux64.zip
+chromedriver_zip_temp_path: /tmp/chromedriver.zip

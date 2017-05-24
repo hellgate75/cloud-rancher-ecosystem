@@ -1,0 +1,11 @@
+- name: run rancher server clustered instance on secondary node
+  become: yes
+  shell: docker run -d --hostname={{ rancher_host }} --name rancher-server --restart=unless-stopped -p 8080:{{ rancher_port }} -p 9345:9345 rancher/server --db-host {{ rancher_database_host }} --db-port {{ rancher_database_port }} --db-user {{ rancher_database_username }} --db-pass {{ rancher_database_userpasswd }} --db-name {{ rancher_database_name }} --advertise-address {{ rancher_server_slave_private_ip }}
+
+- name: Wait for the Rancher server to start
+  become: yes
+  action: command docker logs rancher-server
+  register: rancher_logs
+  until: rancher_logs.stdout.find("Listening on ") != -1
+  retries: 30
+  delay: 10

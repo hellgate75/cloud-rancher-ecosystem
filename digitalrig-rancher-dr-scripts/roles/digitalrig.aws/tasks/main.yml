@@ -1,0 +1,53 @@
+# S3 buckets
+- name: create s3 buckets
+  s3: bucket="{{ item }}" mode=create region={{ aws_region }}
+  with_items: s3_buckets
+
+# Security groups
+- name: create security groups
+  local_action:
+    module: ec2_group
+    name: "{{ item.name }}"
+    description: "{{ item.desc }}"
+    region: "{{ aws_region }}"
+    state: present
+    purge_rules: true
+    purge_rules_egress: true
+    rules: "{{ item.rules }}"
+    rules_egress: "{{ item.rules_egress }}"
+  with_items: security_groups
+
+# Instances
+- name: launch instances
+  local_action:
+    module: ec2
+    region: "{{ aws_region }}"
+    keypair: "{{ item.keypair }}"
+    group: "{{ item.security_groups }}"
+    instance_type: "{{ item.type }}"
+    image: "{{ item.ami }}"
+    exact_count: 1  # we only ever allow one instance with a unique name
+    instance_tags: { "Name" : "{{ item.name }}"}
+    count_tag:
+      Name: "{{ item.name }}"
+    wait: yes
+    wait_timeout: 300
+    volumes:
+      - device_name: /dev/sda1
+        volume_size: "{{ item.volume_size }}"
+        volume_type: "{{ item.volume_type }}"
+        delete_on_termination: true
+    instance_profile_name: "{{ item.instance_profile_name | default('standard-internal-instance') }}"
+    user_data: "{{ lookup('template', '../templates/user_data_route53_dns.yml.j2') }}"
+  with_items: instances
+  register: ec2
+
+- name: Add new instance to host group
+  add_host: hostname={{ item.instances[0].public_ip }} groups=tag_Name_{{ item.item.name }} ec2_id={{ item.instances[0].id }}
+  with_items: ec2.results
+  when: item.changed
+
+- name: associate elastic ips
+  ec2_eip: instance_id={{ hostvars[groups['tag_Name_' + item.name][0]].ec2_id }} ip={{ item.elastic_ip }} region={{ aws_region }}
+  when: item.elastic_ip is defined and groups['tag_Name_' + item.name] | length > 0
+  with_items: instances

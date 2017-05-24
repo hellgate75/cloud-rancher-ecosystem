@@ -1,0 +1,29 @@
+---
+# Tomcat version number
+tomcat_version: 8.0.20
+
+# Mirror where to dowload Tomcat redistributable package from
+tomcat_mirror: http://archive.apache.org/dist/tomcat
+
+# tomcat service user
+#   user name
+tomcat_user_name: tomcat
+#   group name
+tomcat_user_group: tomcat
+#   user's home directory
+tomcat_user_home: "/srv/{{ tomcat_user_name }}"
+
+# tomcat installation directories
+#   base directory for tomcat installations
+tomcat_install_base: /opt/tomcat
+
+# tomcat instance
+#   instance directory, denoted by environment variable CATALINA_BASE
+tomcat_env_catalina_base: "{{ tomcat_user_home }}/catalina"
+#   service name
+tomcat_service_name: "{{ tomcat_user_name }}"
+#   template for configuration file server.xml
+tomcat_server_xml_template: server.xml.j2
+
+# java home (used as {java_home}/bin/java)
+java_home: /usr/

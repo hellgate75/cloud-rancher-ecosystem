@@ -1,0 +1,34 @@
+- name: download convox cli binaries
+  get_url: url=https://install.convox.com/osx.zip dest=/tmp/convox.zip force=no
+
+- name: Assures /tmp/convox dir exists
+  file: path=/tmp/convox state=directory
+
+- name: extract convox cli binaries
+  unarchive: src=/tmp/convox.zip dest=/tmp/convox
+
+- name: create convox cluster on AWS
+  shell: /tmp/convox/convox install --region {{ aws_region }} --instance-count {{ convox_instance_count }} \
+              --instance-type {{ convox_instance_type }} --password  {{ convox_password }} \
+              --stack-name {{ convox_rack_name }}-{{ domain|replace(".","-") }} \
+              --vpc-cidr {{ convox_vpc_cidr }} --subnet-cidrs {{ convox_subnet_cidrs }}
+
+- name: display newly created cluster credentials
+  shell: cat ~/.convox/auth | grep {{ convox_rack_name }}-{{ domain|replace(".","-") }} | tr -d '"'
+  register: convox_rack_info
+
+- debug: msg="Convox rack created with the following credentials '{{convox_rack_info.stdout}}'"
+
+- name: Load balancer name for route53 entry
+  shell: echo {{convox_rack_info.stdout}} | tr -d ':' | awk '{print $1;}'
+  register: convox_rack_load_balancer
+
+- name: create route53 for Convox load balancer
+  route53:
+    command: create
+    zone: "{{ domain }}"
+    record: "{{ convox_rack_name }}.{{ domain }}"
+    type: CNAME
+    ttl: "60"
+    value: "{{ convox_rack_load_balancer.stdout }}"
+    overwrite: yes

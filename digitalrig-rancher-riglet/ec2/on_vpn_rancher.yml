@@ -1,0 +1,22 @@
+# Now it's required to cennect to vpn first!!!
+# and you need 'pip install "pywinrm>=0.1.1"'
+# See http://stackoverflow.com/questions/34334209/how-to-make-ansible-connect-to-windows-host-behind-linux-jump-server
+- include: ../knocker.yml
+- include: ../rancher-base.yml
+- include: ../knocker.yml
+- include: ../rancher-ha-database.yml
+- include: ../knocker.yml
+- include: ../rancher-server.yml
+- include: ../rancher-server-slave.yml
+- include: ../knocker.yml
+- include: ../rancher-front-end.yml
+- include: ../knocker.yml
+- include: ../rancher-env1-host.yml
+- include: ../rancher-env2-host.yml
+- include: ../rancher-env3-host.yml
+- include: ../knocker.yml
+- include: ../rancher-k8s-host.yml
+- include: ../knocker.yml
+- include: ../rancher-mesos-host.yml
+- include: ../knocker.yml
+- include: ../rancher-portainer-host.yml

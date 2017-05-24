@@ -1,0 +1,4 @@
+- hosts: rancher-base
+  become: yes
+
+- include: rancher-client-generic.yml

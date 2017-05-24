@@ -1,0 +1,16 @@
+---
+- name: enable epel-release repository
+  yum: pkg=epel-release state=installed
+
+- name: install nodejs
+  yum: pkg=nodejs state=installed enablerepo=epel
+
+- name: install npm
+  yum:  pkg=npm state=installed enablerepo=epel
+
+- name: install forever to run Node.js app
+  npm: name=forever global=yes state=latest
+
+- name: create a folder to hold forever logs
+  file: path=/var/log/forever state=directory
+        owner=centos group=centos recurse=true

@@ -1,0 +1,5 @@
+letsencrypt_email: example@example.com
+letsencrypt_cert_domain: '{{ domain }}'
+letsencrypt_server: https://acme-staging.api.letsencrypt.org/directory
+letsencryptit_dir: /home/centos/letsencryptit
+letsencrypt_command:  "{{ letsencryptit_dir }}/letsencrypt-auto certonly --keep-until-expiring --standalone --agree-tos --text -d {{ letsencrypt_cert_domain }} --email {{ letsencrypt_email }} --server {{ letsencrypt_server }}"

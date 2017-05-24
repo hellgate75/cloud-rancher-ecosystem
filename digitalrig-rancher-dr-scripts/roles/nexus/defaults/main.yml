@@ -1,0 +1,10 @@
+---
+nexus_version: 2.14.1-01
+nexus_download_url: http://www.sonatype.org/downloads/nexus-{{nexus_version}}-bundle.tar.gz
+nexus_download_dest: /tmp/nexus-{{nexus_version}}-bundle.tar.gz
+nexus_extracted_dir: /tmp/nexus_extracted_dir
+nexus_dir: /usr/local/nexus
+nexus_application_port: 9000
+nexus_maxmemory: 768
+
+xml_data: <repository><data><exposed>true</exposed><format>maven2</format><id>xmltest</id><indexable>true</indexable><name>XMLTest</name><provider>maven2</provider><providerRole>org.sonatype.nexus.proxy.repository.Repository</providerRole><repoPolicy>RELEASE</repoPolicy><repoType>hosted</repoType></data></repository>

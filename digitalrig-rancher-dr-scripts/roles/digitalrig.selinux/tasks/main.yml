@@ -1,0 +1,36 @@
+- name: install required semanage package
+  yum: pkg=policycoreutils-python state=installed
+
+- name: check selinux settings for proxy ports
+  shell: "semanage port -l | grep http_port_t | grep tcp | grep {{ item }}"
+  register: seport_type_chk
+  ignore_errors: true
+  when: ansible_os_family == 'RedHat'
+  with_items: "{{ selinux_proxy_ports }}"
+
+- name: show results
+  debug: msg={{ seport_type_chk }}
+
+- name: for failed selinux proxy ports, check if they are used in other port types
+  shell: "semanage port -l | grep -v http_port_t | grep tcp | grep {{ item.item }}"
+  register: seport_other_type_chk
+  ignore_errors: true
+  when: item|failed and ansible_os_family == 'RedHat'
+  with_items: "{{ seport_type_chk.results }}"
+
+- name: show results
+  debug: msg={{ seport_other_type_chk }}
+
+- name: show results by item
+  debug: msg={{ item }}
+  with_items: "{{ seport_other_type_chk.results }}"
+
+- name: make selinux allow http proxying for new ports not used in other port types (i.e. use -a attribute)
+  command: "semanage port -a -t http_port_t -p tcp {{ item.item.item }}"
+  when: item|failed and ansible_os_family == 'RedHat'
+  with_items: "{{ seport_other_type_chk.results }}"
+
+- name: make selinux allow http proxying for new ports used in other port types (i.e. use -m attribute)
+  command: "semanage port -m -t http_port_t -p tcp {{ item.item.item }}"
+  when: ansible_os_family == 'RedHat' and item|success and not item|skipped
+  with_items: "{{ seport_other_type_chk.results }}"

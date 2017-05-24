@@ -1,0 +1,22 @@
+---
+rancher_home: -home-rancher
+root_home: -root
+rancher_port: "8080"
+rancher_host: "{{ rancher_server_master_private_ip }}"
+rancher_environment_values:
+  - template: "cattle1.json.j2"
+  - template: "cattle2.json.j2"
+  - template: "cattle3.json.j2"
+  - template: "kubernetes.json.j2"
+  - template: "mesos.json.j2"
+  - template: "portainer.json.j2"
+rancher_environment_minimal_values:
+  - template: "cattle1.json.j2"
+  - template: "cattle2.json.j2"
+  - template: "kubernetes.json.j2"
+cattle_template_name: "Cattle"
+kubernetes_template_name: "Kubernetes"
+mesos_template_name: "Mesos"
+swarm_template_name: "Swarm"
+default_project_name: "CI-CD1"
+default_rancher_project_name: "Default"
