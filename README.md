@@ -35,8 +35,7 @@ The folowing resource are provided with the installation :
 Follow the installation guides provided in each implementation.
 
 ## License
-
-Copyright (c) 2016-2017 [BuildIt, Inc.](http://buildit.digital)
+Copyright (c) 2016-2020 [Fabrizio Torelli, Inc.](https://www.linkedin.com/in/fabriziotorelli)
 
 Licensed under the [MIT](/LICENSE) License (the "License");
 you may not use this file except in compliance with the License.
